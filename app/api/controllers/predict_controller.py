@@ -6,8 +6,8 @@ import json
 import os
 
 from fastapi import APIRouter
-from app.api.model.predict_model import SummaryRequest
-from app.api.service.predict_service import get_all_products_summary
+from app.api.models.predict_model import SummaryRequest
+from app.api.services.predict_service import get_all_products_summary
 
 predict_controller = APIRouter()
 

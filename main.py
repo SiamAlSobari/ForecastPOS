@@ -1,9 +1,9 @@
 from fastapi import FastAPI
-from app.api.controller.predict_controller import predict_controller
-
+from app.api.controllers.predict_controller import predict_controller
+from app.api.middlewares.auth import AuthMiddleware
 app = FastAPI(title="ML Kasir API - Decision Support System")
 
-
+app.add_middleware(AuthMiddleware)
 @app.get("/")
 def home():
     return {"message": "API Kasir ML Aktif!", "port": 8080}
