@@ -3,7 +3,7 @@ Service layer untuk Decision Support System Restock Barang.
 Menghubungkan AI engine dengan API controller.
 """
 
-from app.ai.predict_ai import analyze_restock, normalize_transactions
+from app.ai.stock_ai import analyze_restock, normalize_transactions
 
 
 def get_restock_analysis(

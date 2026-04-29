@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.controllers.predict_controller import predict_controller
+from app.api.controllers.stock_controller import stock_controller
 from app.api.controllers.busy_hour_controller import busy_hour_controller
 from app.api.middlewares.auth import AuthMiddleware
 app = FastAPI(title="ML Kasir API - Decision Support System")
@@ -10,7 +10,7 @@ def home():
     return {"message": "API Kasir ML Aktif!", "port": 8080}
 
 
-app.include_router(predict_controller, prefix="/api/predict")
+app.include_router(stock_controller, prefix="/api/predict")
 app.include_router(busy_hour_controller, prefix="/api/predict")
 
 # Jika ingin menjalankan langsung via 'python main.py'

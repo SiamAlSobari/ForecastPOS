@@ -37,10 +37,7 @@ def predict_busy_hours(body: SummaryRequest = SummaryRequest()):
 
     Returns:
     - Prediksi jam sibuk per hari (hourly breakdown)
-    - Prediksi produk yang akan terjual per jam
-    - Revenue forecast per jam
-    - Historical pattern analysis
-    - Model accuracy metrics (MAE, RMSE, R², MAPE, Accuracy%)
+    - Prediksi produk & revenue per jam
     - Peak hour rankings & summary
     """
     if body.data:
