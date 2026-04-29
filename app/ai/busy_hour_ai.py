@@ -17,9 +17,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import Ridge
-from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 warnings.filterwarnings("ignore")
 
@@ -213,47 +211,15 @@ class BusyHourEnsemble:
         return np.maximum(0, ensemble)
 
     def _compute_metrics(self, X: np.ndarray, y: np.ndarray):
-        """Cross-validated accuracy metrics."""
-        X_scaled = self.scaler.transform(X)
+        """Hitung akurasi model (simplified)."""
         y_pred = self.predict(X)
-
-        # In-sample metrics
-        mae = mean_absolute_error(y, y_pred)
-        rmse = np.sqrt(mean_squared_error(y, y_pred))
-        r2 = r2_score(y, y_pred) if len(y) > 1 else 0.0
         mape = np.mean(np.abs((y - y_pred) / np.where(y == 0, 1, y))) * 100
-
-        # Cross-validation
-        n_splits = min(3, max(2, len(y) // 5))
-        cv_scores = {}
-        try:
-            tscv = TimeSeriesSplit(n_splits=n_splits)
-            for name, model in [("RF", self.rf), ("GBR", self.gbr), ("Ridge", self.ridge)]:
-                scores = cross_val_score(model, X_scaled, y, cv=tscv, scoring="r2")
-                cv_scores[name] = {"mean_r2": round(float(np.mean(scores)), 4),
-                                   "std_r2": round(float(np.std(scores)), 4)}
-        except Exception:
-            cv_scores = {"note": "Insufficient data for cross-validation"}
-
         accuracy_pct = max(0, min(100, (1 - mape / 100) * 100))
 
         self.metrics = {
-            "mae": round(mae, 4),
-            "rmse": round(rmse, 4),
-            "r2_score": round(r2, 4),
-            "mape_percent": round(mape, 2),
             "accuracy_percent": round(accuracy_pct, 2),
             "training_samples": len(y),
-            "cross_validation": cv_scores,
-            "ensemble_weights": {"RF": self.weights[0], "GBR": self.weights[1], "Ridge": self.weights[2]},
-            "feature_importance_rf": {},
         }
-
-        # Feature importance from RF
-        importances = self.rf.feature_importances_
-        for i, col in enumerate(FEATURE_COLS):
-            if i < len(importances):
-                self.metrics["feature_importance_rf"][col] = round(float(importances[i]), 4)
 
 
 # ─── Revenue Model ───────────────────────────────────────────────────────────
@@ -385,33 +351,13 @@ def analyze_busy_hours(
     rev_model.fit(X, y_rev)
 
     print(f"[MODEL] Trained | Accuracy: {trx_model.metrics.get('accuracy_percent', 0)}%")
-    print(f"   MAE={trx_model.metrics.get('mae', 0)}, RMSE={trx_model.metrics.get('rmse', 0)}, R2={trx_model.metrics.get('r2_score', 0)}")
 
-    # 4. Historical pattern analysis
-    hist_hourly = features_df.groupby("hour").agg(
-        avg_trx=("trx_count", "mean"),
-        max_trx=("trx_count", "max"),
-        avg_revenue=("total_amount", "mean"),
-    ).reset_index()
-
+    # 4. Percentile thresholds (internal use only)
     percentiles = {
         "p40": float(np.percentile(y_trx[y_trx > 0], 40)) if np.any(y_trx > 0) else 0.5,
         "p70": float(np.percentile(y_trx[y_trx > 0], 70)) if np.any(y_trx > 0) else 1.0,
         "p90": float(np.percentile(y_trx[y_trx > 0], 90)) if np.any(y_trx > 0) else 1.5,
     }
-
-    # Historical peak hours
-    historical_patterns = []
-    for _, row in hist_hourly.iterrows():
-        bl = classify_busy_level(row["avg_trx"], percentiles)
-        historical_patterns.append({
-            "hour": f"{int(row['hour']):02d}:00",
-            "avg_transactions": round(row["avg_trx"], 2),
-            "max_transactions": int(row["max_trx"]),
-            "avg_revenue": round(row["avg_revenue"], 0),
-            "busy_level": bl["level"],
-            "emoji": bl["emoji"],
-        })
 
     # 5. Product probabilities
     product_probs = build_product_hour_probabilities(prod_df, catalog)
@@ -491,12 +437,10 @@ def analyze_busy_hours(
 
             hour_entry = {
                 "hour": f"{h:02d}:00",
-                "hour_int": h,
                 "predicted_transactions": round(pred_trx, 2),
                 "predicted_revenue": round(pred_rev, 0),
                 "busy_level": bl["level"],
-                "busy_point": bl["point"],
-                "busy_emoji": bl["emoji"],
+                "emoji": bl["emoji"],
                 "predicted_products": predicted_products[:6],
             }
             hourly_preds.append(hour_entry)
@@ -530,64 +474,30 @@ def analyze_busy_hours(
             "hourly_breakdown": hourly_preds,
         })
 
-    # 7. Summary statistics
+    # 7. Summary
     all_peak_hours.sort(key=lambda x: x["predicted_trx"], reverse=True)
     busiest_day = max(daily_forecasts, key=lambda x: x["total_predicted_transactions"])
     quietest_day = min(daily_forecasts, key=lambda x: x["total_predicted_transactions"])
 
-    # Day-of-week pattern
-    dow_names = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
-    dow_pattern = []
-    for dow_i in range(7):
-        days_data = [d for d in daily_forecasts if d["day_of_week"] == dow_i]
-        if days_data:
-            avg_trx = np.mean([d["total_predicted_transactions"] for d in days_data])
-            dow_pattern.append({"day": dow_names[dow_i], "avg_predicted_trx": round(avg_trx, 1)})
+    print(f"\n[FORECAST] {forecast_days} hari | Accuracy: {trx_model.metrics['accuracy_percent']}%")
+    print(f"[BUSIEST] {busiest_day['date']} ({busiest_day['day_name']})")
+    print(f"[DONE] Analysis complete!\n")
 
-    # Print summary
-    print(f"\n[FORECAST] Generated for {forecast_days} days")
-    print(f"[BUSIEST] {busiest_day['date']} ({busiest_day['day_name']}) "
-          f"- {busiest_day['total_predicted_transactions']} trx")
-    print(f"[QUIETEST] {quietest_day['date']} ({quietest_day['day_name']}) "
-          f"- {quietest_day['total_predicted_transactions']} trx")
-    print(f"[PEAK HOURS] Total in {forecast_days} days: {len(all_peak_hours)}")
-
-    # 8. Compile result
-    result = {
+    # 8. Clean result
+    return {
         "analysis_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "forecast_days": forecast_days,
+        "accuracy_percent": trx_model.metrics["accuracy_percent"],
+        "training_samples": trx_model.metrics["training_samples"],
         "data_range": {
             "from": features_df["date"].min().strftime("%Y-%m-%d"),
             "to": features_df["date"].max().strftime("%Y-%m-%d"),
-            "total_training_days": int(features_df["date"].nunique()),
-            "total_sale_transactions": len(hourly_df),
         },
-        "model_accuracy": trx_model.metrics,
-        "historical_hourly_pattern": historical_patterns,
-        "day_of_week_pattern": dow_pattern,
-        "percentile_thresholds": percentiles,
-        "summary": {
-            "busiest_predicted_day": {
-                "date": busiest_day["date"],
-                "day_name": busiest_day["day_name"],
-                "total_transactions": busiest_day["total_predicted_transactions"],
-                "peak_hour": busiest_day["peak_hour"],
-            },
-            "quietest_predicted_day": {
-                "date": quietest_day["date"],
-                "day_name": quietest_day["day_name"],
-                "total_transactions": quietest_day["total_predicted_transactions"],
-            },
-            "total_peak_hours": len(all_peak_hours),
-            "top_5_peak_hours": all_peak_hours[:5],
-            "avg_daily_transactions": round(np.mean([d["total_predicted_transactions"] for d in daily_forecasts]), 1),
-            "avg_daily_revenue": round(np.mean([d["total_predicted_revenue"] for d in daily_forecasts]), 0),
-        },
+        "busiest_day": f"{busiest_day['date']} ({busiest_day['day_name']})",
+        "quietest_day": f"{quietest_day['date']} ({quietest_day['day_name']})",
+        "avg_daily_transactions": round(np.mean([d["total_predicted_transactions"] for d in daily_forecasts]), 1),
+        "avg_daily_revenue": round(np.mean([d["total_predicted_revenue"] for d in daily_forecasts]), 0),
+        "total_peak_hours": len(all_peak_hours),
+        "top_peak_hours": all_peak_hours[:5],
         "daily_forecasts": daily_forecasts,
     }
-
-    print("=" * 70)
-    print("[DONE] Analysis complete!")
-    print("=" * 70 + "\n")
-
-    return result

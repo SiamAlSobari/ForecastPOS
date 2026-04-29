@@ -7,9 +7,9 @@ import os
 
 from fastapi import APIRouter
 from app.api.models.predict_model import SummaryRequest
-from app.api.services.predict_service import get_all_products_summary
+from app.api.services.stock_service import get_all_products_summary
 
-predict_controller = APIRouter()
+stock_controller = APIRouter()
 
 
 # ─── Helper: Load data dari file ──────────────────────────────────────────────
@@ -27,7 +27,7 @@ def _load_transactions_from_file() -> list[dict]:
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
-@predict_controller.post("/restock/summary")
+@stock_controller.post("/restock/summary")
 def restock_summary(body: SummaryRequest = SummaryRequest()):
     """
     Ringkasan urgensi restock untuk semua produk.

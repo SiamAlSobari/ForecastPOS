@@ -1,6 +1,6 @@
 import sys, io, json
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-from app.api.services.predict_service import get_all_products_summary
+from app.api.services.stock_service import get_all_products_summary
 data = json.load(open('data/trx.json', 'r', encoding='utf-8'))
 r = get_all_products_summary(data['data'])
 for x in r:
