@@ -1478,6 +1478,53 @@
     {
       "id": 12,
       "user_id": 1,
+      "trx_type": "ADJUSTMENT",
+      "trx_date": "2026-04-12",
+      "payment_method": "CASH",
+      "paid_at": "2026-04-12 19:30:00",
+      "total_amount": "17500.00",
+      "created_at": "2026-04-12T19:30:00.000000Z",
+      "updated_at": "2026-04-12T19:30:00.000000Z",
+      "deleted_at": null,
+      "items": [
+        {
+          "id": 41,
+          "transaction_id": 12,
+          "product_id": 3,
+          "quantity": 5,
+          "unit_price": "3500.00",
+          "line_price": "17500.00",
+          "created_at": "2026-04-12T19:30:00.000000Z",
+          "updated_at": "2026-04-12T19:30:00.000000Z",
+          "product": {
+            "id": 3,
+            "name": "Air mineral 600ml",
+            "price": "3500.00",
+            "description": "Air mineral 600ml adalah produk contoh.",
+            "created_at": "2026-04-10T08:00:00.000000Z",
+            "updated_at": "2026-04-10T08:00:00.000000Z",
+            "image_url": "https://placehold.co/400x400?text=Air+mineral+600ml",
+            "category_id": 3,
+            "deleted_at": null,
+            "is_active": true,
+            "user_id": 1,
+            "stocks": [
+              {
+                "id": "019dc8a5-47fe-7320-82be-3081bb593d3e",
+                "product_id": 3,
+                "stock_on_hand": 20,
+                "created_at": "2026-04-10T08:00:00.000000Z",
+                "updated_at": "2026-04-26T07:24:03.000000Z",
+                "deleted_at": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-13",
       "payment_method": "CASH",
@@ -1488,8 +1535,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 41,
-          "transaction_id": 12,
+          "id": 42,
+          "transaction_id": 13,
           "product_id": 2,
           "quantity": 8,
           "unit_price": "3000.00",
@@ -1521,8 +1568,8 @@
           }
         },
         {
-          "id": 42,
-          "transaction_id": 12,
+          "id": 43,
+          "transaction_id": 13,
           "product_id": 3,
           "quantity": 6,
           "unit_price": "3500.00",
@@ -1554,8 +1601,8 @@
           }
         },
         {
-          "id": 43,
-          "transaction_id": 12,
+          "id": 44,
+          "transaction_id": 13,
           "product_id": 1,
           "quantity": 3,
           "unit_price": "15000.00",
@@ -1587,8 +1634,8 @@
           }
         },
         {
-          "id": 44,
-          "transaction_id": 12,
+          "id": 45,
+          "transaction_id": 13,
           "product_id": 6,
           "quantity": 3,
           "unit_price": "14000.00",
@@ -1622,7 +1669,7 @@
       ]
     },
     {
-      "id": 13,
+      "id": 14,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-13",
@@ -1634,8 +1681,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 45,
-          "transaction_id": 13,
+          "id": 46,
+          "transaction_id": 14,
           "product_id": 4,
           "quantity": 2,
           "unit_price": "70000.00",
@@ -1667,8 +1714,8 @@
           }
         },
         {
-          "id": 46,
-          "transaction_id": 13,
+          "id": 47,
+          "transaction_id": 14,
           "product_id": 5,
           "quantity": 3,
           "unit_price": "18000.00",
@@ -1700,8 +1747,8 @@
           }
         },
         {
-          "id": 47,
-          "transaction_id": 13,
+          "id": 48,
+          "transaction_id": 14,
           "product_id": 2,
           "quantity": 4,
           "unit_price": "3000.00",
@@ -1735,7 +1782,7 @@
       ]
     },
     {
-      "id": 14,
+      "id": 15,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-13",
@@ -1747,8 +1794,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 48,
-          "transaction_id": 14,
+          "id": 49,
+          "transaction_id": 15,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -1780,8 +1827,8 @@
           }
         },
         {
-          "id": 49,
-          "transaction_id": 14,
+          "id": 50,
+          "transaction_id": 15,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -1813,8 +1860,8 @@
           }
         },
         {
-          "id": 50,
-          "transaction_id": 14,
+          "id": 51,
+          "transaction_id": 15,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
@@ -1846,8 +1893,8 @@
           }
         },
         {
-          "id": 51,
-          "transaction_id": 14,
+          "id": 52,
+          "transaction_id": 15,
           "product_id": 5,
           "quantity": 1,
           "unit_price": "18000.00",
@@ -1881,7 +1928,7 @@
       ]
     },
     {
-      "id": 15,
+      "id": 16,
       "user_id": 1,
       "trx_type": "PURCHASE",
       "trx_date": "2026-04-14",
@@ -1893,8 +1940,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 52,
-          "transaction_id": 15,
+          "id": 53,
+          "transaction_id": 16,
           "product_id": 1,
           "quantity": 15,
           "unit_price": "15000.00",
@@ -1926,8 +1973,8 @@
           }
         },
         {
-          "id": 53,
-          "transaction_id": 15,
+          "id": 54,
+          "transaction_id": 16,
           "product_id": 2,
           "quantity": 50,
           "unit_price": "3000.00",
@@ -1959,8 +2006,8 @@
           }
         },
         {
-          "id": 54,
-          "transaction_id": 15,
+          "id": 55,
+          "transaction_id": 16,
           "product_id": 3,
           "quantity": 20,
           "unit_price": "3500.00",
@@ -1992,8 +2039,8 @@
           }
         },
         {
-          "id": 55,
-          "transaction_id": 15,
+          "id": 56,
+          "transaction_id": 16,
           "product_id": 6,
           "quantity": 20,
           "unit_price": "14000.00",
@@ -2027,7 +2074,7 @@
       ]
     },
     {
-      "id": 16,
+      "id": 17,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-14",
@@ -2039,8 +2086,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 56,
-          "transaction_id": 16,
+          "id": 57,
+          "transaction_id": 17,
           "product_id": 2,
           "quantity": 5,
           "unit_price": "3000.00",
@@ -2072,8 +2119,8 @@
           }
         },
         {
-          "id": 57,
-          "transaction_id": 16,
+          "id": 58,
+          "transaction_id": 17,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -2105,8 +2152,8 @@
           }
         },
         {
-          "id": 58,
-          "transaction_id": 16,
+          "id": 59,
+          "transaction_id": 17,
           "product_id": 1,
           "quantity": 1,
           "unit_price": "15000.00",
@@ -2138,8 +2185,8 @@
           }
         },
         {
-          "id": 59,
-          "transaction_id": 16,
+          "id": 60,
+          "transaction_id": 17,
           "product_id": 5,
           "quantity": 2,
           "unit_price": "18000.00",
@@ -2173,7 +2220,7 @@
       ]
     },
     {
-      "id": 17,
+      "id": 18,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-14",
@@ -2185,8 +2232,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 60,
-          "transaction_id": 17,
+          "id": 61,
+          "transaction_id": 18,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -2218,8 +2265,8 @@
           }
         },
         {
-          "id": 61,
-          "transaction_id": 17,
+          "id": 62,
+          "transaction_id": 18,
           "product_id": 6,
           "quantity": 3,
           "unit_price": "14000.00",
@@ -2251,8 +2298,8 @@
           }
         },
         {
-          "id": 62,
-          "transaction_id": 17,
+          "id": 63,
+          "transaction_id": 18,
           "product_id": 2,
           "quantity": 3,
           "unit_price": "3000.00",
@@ -2286,7 +2333,7 @@
       ]
     },
     {
-      "id": 18,
+      "id": 19,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-14",
@@ -2298,8 +2345,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 63,
-          "transaction_id": 18,
+          "id": 64,
+          "transaction_id": 19,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -2331,8 +2378,8 @@
           }
         },
         {
-          "id": 64,
-          "transaction_id": 18,
+          "id": 65,
+          "transaction_id": 19,
           "product_id": 3,
           "quantity": 2,
           "unit_price": "3500.00",
@@ -2364,8 +2411,8 @@
           }
         },
         {
-          "id": 65,
-          "transaction_id": 18,
+          "id": 66,
+          "transaction_id": 19,
           "product_id": 5,
           "quantity": 1,
           "unit_price": "18000.00",
@@ -2399,7 +2446,7 @@
       ]
     },
     {
-      "id": 19,
+      "id": 20,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-15",
@@ -2411,8 +2458,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 66,
-          "transaction_id": 19,
+          "id": 67,
+          "transaction_id": 20,
           "product_id": 2,
           "quantity": 4,
           "unit_price": "3000.00",
@@ -2444,8 +2491,8 @@
           }
         },
         {
-          "id": 67,
-          "transaction_id": 19,
+          "id": 68,
+          "transaction_id": 20,
           "product_id": 3,
           "quantity": 4,
           "unit_price": "3500.00",
@@ -2477,8 +2524,8 @@
           }
         },
         {
-          "id": 68,
-          "transaction_id": 19,
+          "id": 69,
+          "transaction_id": 20,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
@@ -2512,7 +2559,7 @@
       ]
     },
     {
-      "id": 20,
+      "id": 21,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-15",
@@ -2524,8 +2571,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 69,
-          "transaction_id": 20,
+          "id": 70,
+          "transaction_id": 21,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -2557,8 +2604,8 @@
           }
         },
         {
-          "id": 70,
-          "transaction_id": 20,
+          "id": 71,
+          "transaction_id": 21,
           "product_id": 5,
           "quantity": 2,
           "unit_price": "18000.00",
@@ -2590,8 +2637,8 @@
           }
         },
         {
-          "id": 71,
-          "transaction_id": 20,
+          "id": 72,
+          "transaction_id": 21,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -2625,7 +2672,7 @@
       ]
     },
     {
-      "id": 21,
+      "id": 22,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-15",
@@ -2637,8 +2684,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 72,
-          "transaction_id": 21,
+          "id": 73,
+          "transaction_id": 22,
           "product_id": 2,
           "quantity": 6,
           "unit_price": "3000.00",
@@ -2670,8 +2717,8 @@
           }
         },
         {
-          "id": 73,
-          "transaction_id": 21,
+          "id": 74,
+          "transaction_id": 22,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -2703,8 +2750,8 @@
           }
         },
         {
-          "id": 74,
-          "transaction_id": 21,
+          "id": 75,
+          "transaction_id": 22,
           "product_id": 6,
           "quantity": 3,
           "unit_price": "14000.00",
@@ -2738,7 +2785,7 @@
       ]
     },
     {
-      "id": 22,
+      "id": 23,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-16",
@@ -2750,8 +2797,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 75,
-          "transaction_id": 22,
+          "id": 76,
+          "transaction_id": 23,
           "product_id": 2,
           "quantity": 5,
           "unit_price": "3000.00",
@@ -2783,8 +2830,8 @@
           }
         },
         {
-          "id": 76,
-          "transaction_id": 22,
+          "id": 77,
+          "transaction_id": 23,
           "product_id": 1,
           "quantity": 1,
           "unit_price": "15000.00",
@@ -2816,8 +2863,8 @@
           }
         },
         {
-          "id": 77,
-          "transaction_id": 22,
+          "id": 78,
+          "transaction_id": 23,
           "product_id": 3,
           "quantity": 2,
           "unit_price": "3500.00",
@@ -2851,7 +2898,7 @@
       ]
     },
     {
-      "id": 23,
+      "id": 24,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-16",
@@ -2863,8 +2910,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 78,
-          "transaction_id": 23,
+          "id": 79,
+          "transaction_id": 24,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -2896,8 +2943,8 @@
           }
         },
         {
-          "id": 79,
-          "transaction_id": 23,
+          "id": 80,
+          "transaction_id": 24,
           "product_id": 5,
           "quantity": 1,
           "unit_price": "18000.00",
@@ -2929,8 +2976,8 @@
           }
         },
         {
-          "id": 80,
-          "transaction_id": 23,
+          "id": 81,
+          "transaction_id": 24,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
@@ -2962,8 +3009,8 @@
           }
         },
         {
-          "id": 81,
-          "transaction_id": 23,
+          "id": 82,
+          "transaction_id": 24,
           "product_id": 2,
           "quantity": 3,
           "unit_price": "3000.00",
@@ -2997,7 +3044,7 @@
       ]
     },
     {
-      "id": 24,
+      "id": 25,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-16",
@@ -3009,8 +3056,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 82,
-          "transaction_id": 24,
+          "id": 83,
+          "transaction_id": 25,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -3042,8 +3089,8 @@
           }
         },
         {
-          "id": 83,
-          "transaction_id": 24,
+          "id": 84,
+          "transaction_id": 25,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -3077,7 +3124,7 @@
       ]
     },
     {
-      "id": 25,
+      "id": 26,
       "user_id": 1,
       "trx_type": "PURCHASE",
       "trx_date": "2026-04-17",
@@ -3089,8 +3136,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 84,
-          "transaction_id": 25,
+          "id": 85,
+          "transaction_id": 26,
           "product_id": 4,
           "quantity": 10,
           "unit_price": "70000.00",
@@ -3122,8 +3169,8 @@
           }
         },
         {
-          "id": 85,
-          "transaction_id": 25,
+          "id": 86,
+          "transaction_id": 26,
           "product_id": 5,
           "quantity": 30,
           "unit_price": "18000.00",
@@ -3155,8 +3202,8 @@
           }
         },
         {
-          "id": 86,
-          "transaction_id": 25,
+          "id": 87,
+          "transaction_id": 26,
           "product_id": 3,
           "quantity": 15,
           "unit_price": "3500.00",
@@ -3190,7 +3237,7 @@
       ]
     },
     {
-      "id": 26,
+      "id": 27,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-17",
@@ -3202,8 +3249,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 87,
-          "transaction_id": 26,
+          "id": 88,
+          "transaction_id": 27,
           "product_id": 2,
           "quantity": 4,
           "unit_price": "3000.00",
@@ -3235,8 +3282,8 @@
           }
         },
         {
-          "id": 88,
-          "transaction_id": 26,
+          "id": 89,
+          "transaction_id": 27,
           "product_id": 3,
           "quantity": 4,
           "unit_price": "3500.00",
@@ -3268,8 +3315,8 @@
           }
         },
         {
-          "id": 89,
-          "transaction_id": 26,
+          "id": 90,
+          "transaction_id": 27,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -3301,8 +3348,8 @@
           }
         },
         {
-          "id": 90,
-          "transaction_id": 26,
+          "id": 91,
+          "transaction_id": 27,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
@@ -3336,7 +3383,7 @@
       ]
     },
     {
-      "id": 27,
+      "id": 28,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-17",
@@ -3348,8 +3395,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 91,
-          "transaction_id": 27,
+          "id": 92,
+          "transaction_id": 28,
           "product_id": 5,
           "quantity": 2,
           "unit_price": "18000.00",
@@ -3381,8 +3428,8 @@
           }
         },
         {
-          "id": 92,
-          "transaction_id": 27,
+          "id": 93,
+          "transaction_id": 28,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -3414,8 +3461,8 @@
           }
         },
         {
-          "id": 93,
-          "transaction_id": 27,
+          "id": 94,
+          "transaction_id": 28,
           "product_id": 2,
           "quantity": 5,
           "unit_price": "3000.00",
@@ -3449,7 +3496,7 @@
       ]
     },
     {
-      "id": 28,
+      "id": 29,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-17",
@@ -3461,8 +3508,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 94,
-          "transaction_id": 28,
+          "id": 95,
+          "transaction_id": 29,
           "product_id": 1,
           "quantity": 1,
           "unit_price": "15000.00",
@@ -3494,8 +3541,8 @@
           }
         },
         {
-          "id": 95,
-          "transaction_id": 28,
+          "id": 96,
+          "transaction_id": 29,
           "product_id": 3,
           "quantity": 2,
           "unit_price": "3500.00",
@@ -3527,8 +3574,8 @@
           }
         },
         {
-          "id": 96,
-          "transaction_id": 28,
+          "id": 97,
+          "transaction_id": 29,
           "product_id": 6,
           "quantity": 3,
           "unit_price": "14000.00",
@@ -3562,26 +3609,26 @@
       ]
     },
     {
-      "id": 29,
+      "id": 30,
       "user_id": 1,
-      "trx_type": "SALE",
-      "trx_date": "2026-04-18",
+      "trx_type": "ADJUSTMENT",
+      "trx_date": "2026-04-17",
       "payment_method": "CASH",
-      "paid_at": "2026-04-18 09:45:10",
-      "total_amount": "58500.00",
-      "created_at": "2026-04-18T09:45:10.000000Z",
-      "updated_at": "2026-04-18T09:45:10.000000Z",
+      "paid_at": "2026-04-17 19:00:00",
+      "total_amount": "37000.00",
+      "created_at": "2026-04-17T19:00:00.000000Z",
+      "updated_at": "2026-04-17T19:00:00.000000Z",
       "deleted_at": null,
       "items": [
         {
-          "id": 97,
-          "transaction_id": 29,
+          "id": 98,
+          "transaction_id": 30,
           "product_id": 2,
-          "quantity": 6,
+          "quantity": 3,
           "unit_price": "3000.00",
-          "line_price": "18000.00",
-          "created_at": "2026-04-18T09:45:10.000000Z",
-          "updated_at": "2026-04-18T09:45:10.000000Z",
+          "line_price": "9000.00",
+          "created_at": "2026-04-17T19:00:00.000000Z",
+          "updated_at": "2026-04-17T19:00:00.000000Z",
           "product": {
             "id": 2,
             "name": "Mi instant",
@@ -3607,160 +3654,14 @@
           }
         },
         {
-          "id": 98,
-          "transaction_id": 29,
-          "product_id": 1,
-          "quantity": 2,
-          "unit_price": "15000.00",
-          "line_price": "30000.00",
-          "created_at": "2026-04-18T09:45:10.000000Z",
-          "updated_at": "2026-04-18T09:45:10.000000Z",
-          "product": {
-            "id": 1,
-            "name": "Sabun cuci piring",
-            "price": "15000.00",
-            "description": "Sabun cuci piring adalah produk contoh.",
-            "created_at": "2026-04-10T08:00:00.000000Z",
-            "updated_at": "2026-04-10T08:00:00.000000Z",
-            "image_url": "https://placehold.co/400x400?text=Sabun+cuci+piring",
-            "category_id": 1,
-            "deleted_at": null,
-            "is_active": true,
-            "user_id": 1,
-            "stocks": [
-              {
-                "id": "019dc8a5-47d3-716f-b18f-444d7cfc593b",
-                "product_id": 1,
-                "stock_on_hand": 2,
-                "created_at": "2026-04-10T08:00:00.000000Z",
-                "updated_at": "2026-04-26T07:24:03.000000Z",
-                "deleted_at": null
-              }
-            ]
-          }
-        },
-        {
           "id": 99,
-          "transaction_id": 29,
-          "product_id": 3,
-          "quantity": 3,
-          "unit_price": "3500.00",
-          "line_price": "10500.00",
-          "created_at": "2026-04-18T09:45:10.000000Z",
-          "updated_at": "2026-04-18T09:45:10.000000Z",
-          "product": {
-            "id": 3,
-            "name": "Air mineral 600ml",
-            "price": "3500.00",
-            "description": "Air mineral 600ml adalah produk contoh.",
-            "created_at": "2026-04-10T08:00:00.000000Z",
-            "updated_at": "2026-04-10T08:00:00.000000Z",
-            "image_url": "https://placehold.co/400x400?text=Air+mineral+600ml",
-            "category_id": 3,
-            "deleted_at": null,
-            "is_active": true,
-            "user_id": 1,
-            "stocks": [
-              {
-                "id": "019dc8a5-47fe-7320-82be-3081bb593d3e",
-                "product_id": 3,
-                "stock_on_hand": 20,
-                "created_at": "2026-04-10T08:00:00.000000Z",
-                "updated_at": "2026-04-26T07:24:03.000000Z",
-                "deleted_at": null
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": 30,
-      "user_id": 1,
-      "trx_type": "SALE",
-      "trx_date": "2026-04-18",
-      "payment_method": "CASH",
-      "paid_at": "2026-04-18 13:15:38",
-      "total_amount": "134000.00",
-      "created_at": "2026-04-18T13:15:38.000000Z",
-      "updated_at": "2026-04-18T13:15:38.000000Z",
-      "deleted_at": null,
-      "items": [
-        {
-          "id": 100,
-          "transaction_id": 30,
-          "product_id": 5,
-          "quantity": 2,
-          "unit_price": "18000.00",
-          "line_price": "36000.00",
-          "created_at": "2026-04-18T13:15:38.000000Z",
-          "updated_at": "2026-04-18T13:15:38.000000Z",
-          "product": {
-            "id": 5,
-            "name": "Minyak goreng 1L",
-            "price": "18000.00",
-            "description": "Minyak goreng 1L adalah produk contoh.",
-            "created_at": "2026-04-10T08:00:00.000000Z",
-            "updated_at": "2026-04-10T08:00:00.000000Z",
-            "image_url": "https://placehold.co/400x400?text=Minyak+goreng+1L",
-            "category_id": 5,
-            "deleted_at": null,
-            "is_active": true,
-            "user_id": 1,
-            "stocks": [
-              {
-                "id": "019dc8a5-4812-7111-aaaa-111111111111",
-                "product_id": 5,
-                "stock_on_hand": 60,
-                "created_at": "2026-04-10T08:00:00.000000Z",
-                "updated_at": "2026-04-26T07:24:03.000000Z",
-                "deleted_at": null
-              }
-            ]
-          }
-        },
-        {
-          "id": 101,
-          "transaction_id": 30,
-          "product_id": 4,
-          "quantity": 1,
-          "unit_price": "70000.00",
-          "line_price": "70000.00",
-          "created_at": "2026-04-18T13:15:38.000000Z",
-          "updated_at": "2026-04-18T13:15:38.000000Z",
-          "product": {
-            "id": 4,
-            "name": "Beras 5 kg",
-            "price": "70000.00",
-            "description": "Beras 5 kg adalah produk contoh.",
-            "created_at": "2026-04-10T08:00:00.000000Z",
-            "updated_at": "2026-04-10T08:00:00.000000Z",
-            "image_url": "https://placehold.co/400x400?text=Beras+5+kg",
-            "category_id": 4,
-            "deleted_at": null,
-            "is_active": true,
-            "user_id": 1,
-            "stocks": [
-              {
-                "id": "019dc8a5-4808-7244-9b5d-101c90e6319e",
-                "product_id": 4,
-                "stock_on_hand": 15,
-                "created_at": "2026-04-10T08:00:00.000000Z",
-                "updated_at": "2026-04-26T07:24:03.000000Z",
-                "deleted_at": null
-              }
-            ]
-          }
-        },
-        {
-          "id": 102,
           "transaction_id": 30,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
           "line_price": "28000.00",
-          "created_at": "2026-04-18T13:15:38.000000Z",
-          "updated_at": "2026-04-18T13:15:38.000000Z",
+          "created_at": "2026-04-17T19:00:00.000000Z",
+          "updated_at": "2026-04-17T19:00:00.000000Z",
           "product": {
             "id": 6,
             "name": "Gula pasir 1kg",
@@ -3793,6 +3694,232 @@
       "trx_type": "SALE",
       "trx_date": "2026-04-18",
       "payment_method": "CASH",
+      "paid_at": "2026-04-18 09:45:10",
+      "total_amount": "58500.00",
+      "created_at": "2026-04-18T09:45:10.000000Z",
+      "updated_at": "2026-04-18T09:45:10.000000Z",
+      "deleted_at": null,
+      "items": [
+        {
+          "id": 100,
+          "transaction_id": 31,
+          "product_id": 2,
+          "quantity": 6,
+          "unit_price": "3000.00",
+          "line_price": "18000.00",
+          "created_at": "2026-04-18T09:45:10.000000Z",
+          "updated_at": "2026-04-18T09:45:10.000000Z",
+          "product": {
+            "id": 2,
+            "name": "Mi instant",
+            "price": "3000.00",
+            "description": "Mi instant adalah produk contoh.",
+            "created_at": "2026-04-10T08:00:00.000000Z",
+            "updated_at": "2026-04-10T08:00:00.000000Z",
+            "image_url": "https://placehold.co/400x400?text=Mi+instant",
+            "category_id": 2,
+            "deleted_at": null,
+            "is_active": true,
+            "user_id": 1,
+            "stocks": [
+              {
+                "id": "019dc8a5-47f4-70ba-8bbf-468182f4300c",
+                "product_id": 2,
+                "stock_on_hand": 8,
+                "created_at": "2026-04-10T08:00:00.000000Z",
+                "updated_at": "2026-04-26T07:24:03.000000Z",
+                "deleted_at": null
+              }
+            ]
+          }
+        },
+        {
+          "id": 101,
+          "transaction_id": 31,
+          "product_id": 1,
+          "quantity": 2,
+          "unit_price": "15000.00",
+          "line_price": "30000.00",
+          "created_at": "2026-04-18T09:45:10.000000Z",
+          "updated_at": "2026-04-18T09:45:10.000000Z",
+          "product": {
+            "id": 1,
+            "name": "Sabun cuci piring",
+            "price": "15000.00",
+            "description": "Sabun cuci piring adalah produk contoh.",
+            "created_at": "2026-04-10T08:00:00.000000Z",
+            "updated_at": "2026-04-10T08:00:00.000000Z",
+            "image_url": "https://placehold.co/400x400?text=Sabun+cuci+piring",
+            "category_id": 1,
+            "deleted_at": null,
+            "is_active": true,
+            "user_id": 1,
+            "stocks": [
+              {
+                "id": "019dc8a5-47d3-716f-b18f-444d7cfc593b",
+                "product_id": 1,
+                "stock_on_hand": 2,
+                "created_at": "2026-04-10T08:00:00.000000Z",
+                "updated_at": "2026-04-26T07:24:03.000000Z",
+                "deleted_at": null
+              }
+            ]
+          }
+        },
+        {
+          "id": 102,
+          "transaction_id": 31,
+          "product_id": 3,
+          "quantity": 3,
+          "unit_price": "3500.00",
+          "line_price": "10500.00",
+          "created_at": "2026-04-18T09:45:10.000000Z",
+          "updated_at": "2026-04-18T09:45:10.000000Z",
+          "product": {
+            "id": 3,
+            "name": "Air mineral 600ml",
+            "price": "3500.00",
+            "description": "Air mineral 600ml adalah produk contoh.",
+            "created_at": "2026-04-10T08:00:00.000000Z",
+            "updated_at": "2026-04-10T08:00:00.000000Z",
+            "image_url": "https://placehold.co/400x400?text=Air+mineral+600ml",
+            "category_id": 3,
+            "deleted_at": null,
+            "is_active": true,
+            "user_id": 1,
+            "stocks": [
+              {
+                "id": "019dc8a5-47fe-7320-82be-3081bb593d3e",
+                "product_id": 3,
+                "stock_on_hand": 20,
+                "created_at": "2026-04-10T08:00:00.000000Z",
+                "updated_at": "2026-04-26T07:24:03.000000Z",
+                "deleted_at": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "user_id": 1,
+      "trx_type": "SALE",
+      "trx_date": "2026-04-18",
+      "payment_method": "CASH",
+      "paid_at": "2026-04-18 13:15:38",
+      "total_amount": "134000.00",
+      "created_at": "2026-04-18T13:15:38.000000Z",
+      "updated_at": "2026-04-18T13:15:38.000000Z",
+      "deleted_at": null,
+      "items": [
+        {
+          "id": 103,
+          "transaction_id": 32,
+          "product_id": 5,
+          "quantity": 2,
+          "unit_price": "18000.00",
+          "line_price": "36000.00",
+          "created_at": "2026-04-18T13:15:38.000000Z",
+          "updated_at": "2026-04-18T13:15:38.000000Z",
+          "product": {
+            "id": 5,
+            "name": "Minyak goreng 1L",
+            "price": "18000.00",
+            "description": "Minyak goreng 1L adalah produk contoh.",
+            "created_at": "2026-04-10T08:00:00.000000Z",
+            "updated_at": "2026-04-10T08:00:00.000000Z",
+            "image_url": "https://placehold.co/400x400?text=Minyak+goreng+1L",
+            "category_id": 5,
+            "deleted_at": null,
+            "is_active": true,
+            "user_id": 1,
+            "stocks": [
+              {
+                "id": "019dc8a5-4812-7111-aaaa-111111111111",
+                "product_id": 5,
+                "stock_on_hand": 60,
+                "created_at": "2026-04-10T08:00:00.000000Z",
+                "updated_at": "2026-04-26T07:24:03.000000Z",
+                "deleted_at": null
+              }
+            ]
+          }
+        },
+        {
+          "id": 104,
+          "transaction_id": 32,
+          "product_id": 4,
+          "quantity": 1,
+          "unit_price": "70000.00",
+          "line_price": "70000.00",
+          "created_at": "2026-04-18T13:15:38.000000Z",
+          "updated_at": "2026-04-18T13:15:38.000000Z",
+          "product": {
+            "id": 4,
+            "name": "Beras 5 kg",
+            "price": "70000.00",
+            "description": "Beras 5 kg adalah produk contoh.",
+            "created_at": "2026-04-10T08:00:00.000000Z",
+            "updated_at": "2026-04-10T08:00:00.000000Z",
+            "image_url": "https://placehold.co/400x400?text=Beras+5+kg",
+            "category_id": 4,
+            "deleted_at": null,
+            "is_active": true,
+            "user_id": 1,
+            "stocks": [
+              {
+                "id": "019dc8a5-4808-7244-9b5d-101c90e6319e",
+                "product_id": 4,
+                "stock_on_hand": 15,
+                "created_at": "2026-04-10T08:00:00.000000Z",
+                "updated_at": "2026-04-26T07:24:03.000000Z",
+                "deleted_at": null
+              }
+            ]
+          }
+        },
+        {
+          "id": 105,
+          "transaction_id": 32,
+          "product_id": 6,
+          "quantity": 2,
+          "unit_price": "14000.00",
+          "line_price": "28000.00",
+          "created_at": "2026-04-18T13:15:38.000000Z",
+          "updated_at": "2026-04-18T13:15:38.000000Z",
+          "product": {
+            "id": 6,
+            "name": "Gula pasir 1kg",
+            "price": "14000.00",
+            "description": "Gula pasir 1kg adalah produk contoh.",
+            "created_at": "2026-04-10T08:00:00.000000Z",
+            "updated_at": "2026-04-10T08:00:00.000000Z",
+            "image_url": "https://placehold.co/400x400?text=Gula+pasir+1kg",
+            "category_id": 6,
+            "deleted_at": null,
+            "is_active": true,
+            "user_id": 1,
+            "stocks": [
+              {
+                "id": "019dc8a5-481c-7222-bbbb-222222222222",
+                "product_id": 6,
+                "stock_on_hand": 14,
+                "created_at": "2026-04-10T08:00:00.000000Z",
+                "updated_at": "2026-04-26T07:24:03.000000Z",
+                "deleted_at": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "user_id": 1,
+      "trx_type": "SALE",
+      "trx_date": "2026-04-18",
+      "payment_method": "CASH",
       "paid_at": "2026-04-18 17:50:22",
       "total_amount": "31000.00",
       "created_at": "2026-04-18T17:50:22.000000Z",
@@ -3800,8 +3927,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 103,
-          "transaction_id": 31,
+          "id": 106,
+          "transaction_id": 33,
           "product_id": 2,
           "quantity": 3,
           "unit_price": "3000.00",
@@ -3833,8 +3960,8 @@
           }
         },
         {
-          "id": 104,
-          "transaction_id": 31,
+          "id": 107,
+          "transaction_id": 33,
           "product_id": 3,
           "quantity": 2,
           "unit_price": "3500.00",
@@ -3866,8 +3993,8 @@
           }
         },
         {
-          "id": 105,
-          "transaction_id": 31,
+          "id": 108,
+          "transaction_id": 33,
           "product_id": 1,
           "quantity": 1,
           "unit_price": "15000.00",
@@ -3901,7 +4028,7 @@
       ]
     },
     {
-      "id": 32,
+      "id": 34,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-19",
@@ -3913,8 +4040,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 106,
-          "transaction_id": 32,
+          "id": 109,
+          "transaction_id": 34,
           "product_id": 2,
           "quantity": 7,
           "unit_price": "3000.00",
@@ -3946,8 +4073,8 @@
           }
         },
         {
-          "id": 107,
-          "transaction_id": 32,
+          "id": 110,
+          "transaction_id": 34,
           "product_id": 3,
           "quantity": 5,
           "unit_price": "3500.00",
@@ -3979,8 +4106,8 @@
           }
         },
         {
-          "id": 108,
-          "transaction_id": 32,
+          "id": 111,
+          "transaction_id": 34,
           "product_id": 1,
           "quantity": 3,
           "unit_price": "15000.00",
@@ -4012,8 +4139,8 @@
           }
         },
         {
-          "id": 109,
-          "transaction_id": 32,
+          "id": 112,
+          "transaction_id": 34,
           "product_id": 5,
           "quantity": 3,
           "unit_price": "18000.00",
@@ -4047,7 +4174,7 @@
       ]
     },
     {
-      "id": 33,
+      "id": 35,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-19",
@@ -4059,8 +4186,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 110,
-          "transaction_id": 33,
+          "id": 113,
+          "transaction_id": 35,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -4092,8 +4219,8 @@
           }
         },
         {
-          "id": 111,
-          "transaction_id": 33,
+          "id": 114,
+          "transaction_id": 35,
           "product_id": 6,
           "quantity": 4,
           "unit_price": "14000.00",
@@ -4125,8 +4252,8 @@
           }
         },
         {
-          "id": 112,
-          "transaction_id": 33,
+          "id": 115,
+          "transaction_id": 35,
           "product_id": 2,
           "quantity": 4,
           "unit_price": "3000.00",
@@ -4160,7 +4287,7 @@
       ]
     },
     {
-      "id": 34,
+      "id": 36,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-19",
@@ -4172,8 +4299,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 113,
-          "transaction_id": 34,
+          "id": 116,
+          "transaction_id": 36,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -4205,8 +4332,8 @@
           }
         },
         {
-          "id": 114,
-          "transaction_id": 34,
+          "id": 117,
+          "transaction_id": 36,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -4238,8 +4365,8 @@
           }
         },
         {
-          "id": 115,
-          "transaction_id": 34,
+          "id": 118,
+          "transaction_id": 36,
           "product_id": 5,
           "quantity": 2,
           "unit_price": "18000.00",
@@ -4271,8 +4398,8 @@
           }
         },
         {
-          "id": 116,
-          "transaction_id": 34,
+          "id": 119,
+          "transaction_id": 36,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
@@ -4306,7 +4433,7 @@
       ]
     },
     {
-      "id": 35,
+      "id": 37,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-20",
@@ -4318,8 +4445,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 117,
-          "transaction_id": 35,
+          "id": 120,
+          "transaction_id": 37,
           "product_id": 2,
           "quantity": 9,
           "unit_price": "3000.00",
@@ -4351,8 +4478,8 @@
           }
         },
         {
-          "id": 118,
-          "transaction_id": 35,
+          "id": 121,
+          "transaction_id": 37,
           "product_id": 3,
           "quantity": 6,
           "unit_price": "3500.00",
@@ -4384,8 +4511,8 @@
           }
         },
         {
-          "id": 119,
-          "transaction_id": 35,
+          "id": 122,
+          "transaction_id": 37,
           "product_id": 1,
           "quantity": 3,
           "unit_price": "15000.00",
@@ -4419,7 +4546,7 @@
       ]
     },
     {
-      "id": 36,
+      "id": 38,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-20",
@@ -4431,8 +4558,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 120,
-          "transaction_id": 36,
+          "id": 123,
+          "transaction_id": 38,
           "product_id": 4,
           "quantity": 2,
           "unit_price": "70000.00",
@@ -4464,8 +4591,8 @@
           }
         },
         {
-          "id": 121,
-          "transaction_id": 36,
+          "id": 124,
+          "transaction_id": 38,
           "product_id": 5,
           "quantity": 3,
           "unit_price": "18000.00",
@@ -4497,8 +4624,8 @@
           }
         },
         {
-          "id": 122,
-          "transaction_id": 36,
+          "id": 125,
+          "transaction_id": 38,
           "product_id": 6,
           "quantity": 3,
           "unit_price": "14000.00",
@@ -4530,8 +4657,8 @@
           }
         },
         {
-          "id": 123,
-          "transaction_id": 36,
+          "id": 126,
+          "transaction_id": 38,
           "product_id": 2,
           "quantity": 5,
           "unit_price": "3000.00",
@@ -4565,7 +4692,7 @@
       ]
     },
     {
-      "id": 37,
+      "id": 39,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-20",
@@ -4577,8 +4704,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 124,
-          "transaction_id": 37,
+          "id": 127,
+          "transaction_id": 39,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -4610,8 +4737,8 @@
           }
         },
         {
-          "id": 125,
-          "transaction_id": 37,
+          "id": 128,
+          "transaction_id": 39,
           "product_id": 3,
           "quantity": 4,
           "unit_price": "3500.00",
@@ -4643,8 +4770,8 @@
           }
         },
         {
-          "id": 126,
-          "transaction_id": 37,
+          "id": 129,
+          "transaction_id": 39,
           "product_id": 5,
           "quantity": 1,
           "unit_price": "18000.00",
@@ -4678,7 +4805,7 @@
       ]
     },
     {
-      "id": 38,
+      "id": 40,
       "user_id": 1,
       "trx_type": "PURCHASE",
       "trx_date": "2026-04-21",
@@ -4690,8 +4817,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 127,
-          "transaction_id": 38,
+          "id": 130,
+          "transaction_id": 40,
           "product_id": 1,
           "quantity": 15,
           "unit_price": "15000.00",
@@ -4723,8 +4850,8 @@
           }
         },
         {
-          "id": 128,
-          "transaction_id": 38,
+          "id": 131,
+          "transaction_id": 40,
           "product_id": 2,
           "quantity": 55,
           "unit_price": "3000.00",
@@ -4756,8 +4883,8 @@
           }
         },
         {
-          "id": 129,
-          "transaction_id": 38,
+          "id": 132,
+          "transaction_id": 40,
           "product_id": 6,
           "quantity": 25,
           "unit_price": "14000.00",
@@ -4791,7 +4918,7 @@
       ]
     },
     {
-      "id": 39,
+      "id": 41,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-21",
@@ -4803,8 +4930,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 130,
-          "transaction_id": 39,
+          "id": 133,
+          "transaction_id": 41,
           "product_id": 2,
           "quantity": 5,
           "unit_price": "3000.00",
@@ -4836,8 +4963,8 @@
           }
         },
         {
-          "id": 131,
-          "transaction_id": 39,
+          "id": 134,
+          "transaction_id": 41,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -4869,8 +4996,8 @@
           }
         },
         {
-          "id": 132,
-          "transaction_id": 39,
+          "id": 135,
+          "transaction_id": 41,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -4904,7 +5031,7 @@
       ]
     },
     {
-      "id": 40,
+      "id": 42,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-21",
@@ -4916,8 +5043,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 133,
-          "transaction_id": 40,
+          "id": 136,
+          "transaction_id": 42,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -4949,8 +5076,8 @@
           }
         },
         {
-          "id": 134,
-          "transaction_id": 40,
+          "id": 137,
+          "transaction_id": 42,
           "product_id": 5,
           "quantity": 2,
           "unit_price": "18000.00",
@@ -4982,8 +5109,8 @@
           }
         },
         {
-          "id": 135,
-          "transaction_id": 40,
+          "id": 138,
+          "transaction_id": 42,
           "product_id": 6,
           "quantity": 3,
           "unit_price": "14000.00",
@@ -5017,7 +5144,7 @@
       ]
     },
     {
-      "id": 41,
+      "id": 43,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-21",
@@ -5029,8 +5156,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 136,
-          "transaction_id": 41,
+          "id": 139,
+          "transaction_id": 43,
           "product_id": 2,
           "quantity": 4,
           "unit_price": "3000.00",
@@ -5062,8 +5189,8 @@
           }
         },
         {
-          "id": 137,
-          "transaction_id": 41,
+          "id": 140,
+          "transaction_id": 43,
           "product_id": 3,
           "quantity": 2,
           "unit_price": "3500.00",
@@ -5095,8 +5222,8 @@
           }
         },
         {
-          "id": 138,
-          "transaction_id": 41,
+          "id": 141,
+          "transaction_id": 43,
           "product_id": 1,
           "quantity": 1,
           "unit_price": "15000.00",
@@ -5130,7 +5257,87 @@
       ]
     },
     {
-      "id": 42,
+      "id": 44,
+      "user_id": 1,
+      "trx_type": "ADJUSTMENT",
+      "trx_date": "2026-04-21",
+      "payment_method": "CASH",
+      "paid_at": "2026-04-21 19:15:00",
+      "total_amount": "212000.00",
+      "created_at": "2026-04-21T19:15:00.000000Z",
+      "updated_at": "2026-04-21T19:15:00.000000Z",
+      "deleted_at": null,
+      "items": [
+        {
+          "id": 142,
+          "transaction_id": 44,
+          "product_id": 5,
+          "quantity": 4,
+          "unit_price": "18000.00",
+          "line_price": "72000.00",
+          "created_at": "2026-04-21T19:15:00.000000Z",
+          "updated_at": "2026-04-21T19:15:00.000000Z",
+          "product": {
+            "id": 5,
+            "name": "Minyak goreng 1L",
+            "price": "18000.00",
+            "description": "Minyak goreng 1L adalah produk contoh.",
+            "created_at": "2026-04-10T08:00:00.000000Z",
+            "updated_at": "2026-04-10T08:00:00.000000Z",
+            "image_url": "https://placehold.co/400x400?text=Minyak+goreng+1L",
+            "category_id": 5,
+            "deleted_at": null,
+            "is_active": true,
+            "user_id": 1,
+            "stocks": [
+              {
+                "id": "019dc8a5-4812-7111-aaaa-111111111111",
+                "product_id": 5,
+                "stock_on_hand": 60,
+                "created_at": "2026-04-10T08:00:00.000000Z",
+                "updated_at": "2026-04-26T07:24:03.000000Z",
+                "deleted_at": null
+              }
+            ]
+          }
+        },
+        {
+          "id": 143,
+          "transaction_id": 44,
+          "product_id": 4,
+          "quantity": 2,
+          "unit_price": "70000.00",
+          "line_price": "140000.00",
+          "created_at": "2026-04-21T19:15:00.000000Z",
+          "updated_at": "2026-04-21T19:15:00.000000Z",
+          "product": {
+            "id": 4,
+            "name": "Beras 5 kg",
+            "price": "70000.00",
+            "description": "Beras 5 kg adalah produk contoh.",
+            "created_at": "2026-04-10T08:00:00.000000Z",
+            "updated_at": "2026-04-10T08:00:00.000000Z",
+            "image_url": "https://placehold.co/400x400?text=Beras+5+kg",
+            "category_id": 4,
+            "deleted_at": null,
+            "is_active": true,
+            "user_id": 1,
+            "stocks": [
+              {
+                "id": "019dc8a5-4808-7244-9b5d-101c90e6319e",
+                "product_id": 4,
+                "stock_on_hand": 15,
+                "created_at": "2026-04-10T08:00:00.000000Z",
+                "updated_at": "2026-04-26T07:24:03.000000Z",
+                "deleted_at": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 45,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-22",
@@ -5142,8 +5349,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 139,
-          "transaction_id": 42,
+          "id": 144,
+          "transaction_id": 45,
           "product_id": 2,
           "quantity": 5,
           "unit_price": "3000.00",
@@ -5175,8 +5382,8 @@
           }
         },
         {
-          "id": 140,
-          "transaction_id": 42,
+          "id": 145,
+          "transaction_id": 45,
           "product_id": 3,
           "quantity": 4,
           "unit_price": "3500.00",
@@ -5208,8 +5415,8 @@
           }
         },
         {
-          "id": 141,
-          "transaction_id": 42,
+          "id": 146,
+          "transaction_id": 45,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
@@ -5241,8 +5448,8 @@
           }
         },
         {
-          "id": 142,
-          "transaction_id": 42,
+          "id": 147,
+          "transaction_id": 45,
           "product_id": 5,
           "quantity": 2,
           "unit_price": "18000.00",
@@ -5276,7 +5483,7 @@
       ]
     },
     {
-      "id": 43,
+      "id": 46,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-22",
@@ -5288,8 +5495,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 143,
-          "transaction_id": 43,
+          "id": 148,
+          "transaction_id": 46,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -5321,8 +5528,8 @@
           }
         },
         {
-          "id": 144,
-          "transaction_id": 43,
+          "id": 149,
+          "transaction_id": 46,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -5354,8 +5561,8 @@
           }
         },
         {
-          "id": 145,
-          "transaction_id": 43,
+          "id": 150,
+          "transaction_id": 46,
           "product_id": 2,
           "quantity": 3,
           "unit_price": "3000.00",
@@ -5389,7 +5596,7 @@
       ]
     },
     {
-      "id": 44,
+      "id": 47,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-22",
@@ -5401,8 +5608,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 146,
-          "transaction_id": 44,
+          "id": 151,
+          "transaction_id": 47,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -5434,8 +5641,8 @@
           }
         },
         {
-          "id": 147,
-          "transaction_id": 44,
+          "id": 152,
+          "transaction_id": 47,
           "product_id": 6,
           "quantity": 3,
           "unit_price": "14000.00",
@@ -5467,8 +5674,8 @@
           }
         },
         {
-          "id": 148,
-          "transaction_id": 44,
+          "id": 153,
+          "transaction_id": 47,
           "product_id": 5,
           "quantity": 1,
           "unit_price": "18000.00",
@@ -5502,7 +5709,7 @@
       ]
     },
     {
-      "id": 45,
+      "id": 48,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-23",
@@ -5514,8 +5721,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 149,
-          "transaction_id": 45,
+          "id": 154,
+          "transaction_id": 48,
           "product_id": 2,
           "quantity": 6,
           "unit_price": "3000.00",
@@ -5547,8 +5754,8 @@
           }
         },
         {
-          "id": 150,
-          "transaction_id": 45,
+          "id": 155,
+          "transaction_id": 48,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -5580,8 +5787,8 @@
           }
         },
         {
-          "id": 151,
-          "transaction_id": 45,
+          "id": 156,
+          "transaction_id": 48,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -5615,7 +5822,7 @@
       ]
     },
     {
-      "id": 46,
+      "id": 49,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-23",
@@ -5627,8 +5834,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 152,
-          "transaction_id": 46,
+          "id": 157,
+          "transaction_id": 49,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -5660,8 +5867,8 @@
           }
         },
         {
-          "id": 153,
-          "transaction_id": 46,
+          "id": 158,
+          "transaction_id": 49,
           "product_id": 5,
           "quantity": 2,
           "unit_price": "18000.00",
@@ -5693,8 +5900,8 @@
           }
         },
         {
-          "id": 154,
-          "transaction_id": 46,
+          "id": 159,
+          "transaction_id": 49,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
@@ -5726,8 +5933,8 @@
           }
         },
         {
-          "id": 155,
-          "transaction_id": 46,
+          "id": 160,
+          "transaction_id": 49,
           "product_id": 2,
           "quantity": 3,
           "unit_price": "3000.00",
@@ -5761,7 +5968,7 @@
       ]
     },
     {
-      "id": 47,
+      "id": 50,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-23",
@@ -5773,8 +5980,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 156,
-          "transaction_id": 47,
+          "id": 161,
+          "transaction_id": 50,
           "product_id": 1,
           "quantity": 1,
           "unit_price": "15000.00",
@@ -5806,8 +6013,8 @@
           }
         },
         {
-          "id": 157,
-          "transaction_id": 47,
+          "id": 162,
+          "transaction_id": 50,
           "product_id": 3,
           "quantity": 2,
           "unit_price": "3500.00",
@@ -5841,7 +6048,7 @@
       ]
     },
     {
-      "id": 48,
+      "id": 51,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-24",
@@ -5853,8 +6060,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 158,
-          "transaction_id": 48,
+          "id": 163,
+          "transaction_id": 51,
           "product_id": 2,
           "quantity": 5,
           "unit_price": "3000.00",
@@ -5886,8 +6093,8 @@
           }
         },
         {
-          "id": 159,
-          "transaction_id": 48,
+          "id": 164,
+          "transaction_id": 51,
           "product_id": 3,
           "quantity": 4,
           "unit_price": "3500.00",
@@ -5919,8 +6126,8 @@
           }
         },
         {
-          "id": 160,
-          "transaction_id": 48,
+          "id": 165,
+          "transaction_id": 51,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -5952,8 +6159,8 @@
           }
         },
         {
-          "id": 161,
-          "transaction_id": 48,
+          "id": 166,
+          "transaction_id": 51,
           "product_id": 6,
           "quantity": 3,
           "unit_price": "14000.00",
@@ -5987,7 +6194,7 @@
       ]
     },
     {
-      "id": 49,
+      "id": 52,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-24",
@@ -5999,8 +6206,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 162,
-          "transaction_id": 49,
+          "id": 167,
+          "transaction_id": 52,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -6032,8 +6239,8 @@
           }
         },
         {
-          "id": 163,
-          "transaction_id": 49,
+          "id": 168,
+          "transaction_id": 52,
           "product_id": 5,
           "quantity": 2,
           "unit_price": "18000.00",
@@ -6065,8 +6272,8 @@
           }
         },
         {
-          "id": 164,
-          "transaction_id": 49,
+          "id": 169,
+          "transaction_id": 52,
           "product_id": 2,
           "quantity": 4,
           "unit_price": "3000.00",
@@ -6100,7 +6307,7 @@
       ]
     },
     {
-      "id": 50,
+      "id": 53,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-24",
@@ -6112,8 +6319,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 165,
-          "transaction_id": 50,
+          "id": 170,
+          "transaction_id": 53,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -6145,8 +6352,8 @@
           }
         },
         {
-          "id": 166,
-          "transaction_id": 50,
+          "id": 171,
+          "transaction_id": 53,
           "product_id": 1,
           "quantity": 1,
           "unit_price": "15000.00",
@@ -6178,8 +6385,8 @@
           }
         },
         {
-          "id": 167,
-          "transaction_id": 50,
+          "id": 172,
+          "transaction_id": 53,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
@@ -6213,7 +6420,7 @@
       ]
     },
     {
-      "id": 51,
+      "id": 54,
       "user_id": 1,
       "trx_type": "PURCHASE",
       "trx_date": "2026-04-25",
@@ -6225,8 +6432,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 168,
-          "transaction_id": 51,
+          "id": 173,
+          "transaction_id": 54,
           "product_id": 4,
           "quantity": 8,
           "unit_price": "70000.00",
@@ -6258,8 +6465,8 @@
           }
         },
         {
-          "id": 169,
-          "transaction_id": 51,
+          "id": 174,
+          "transaction_id": 54,
           "product_id": 5,
           "quantity": 25,
           "unit_price": "18000.00",
@@ -6293,7 +6500,7 @@
       ]
     },
     {
-      "id": 52,
+      "id": 55,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-25",
@@ -6305,8 +6512,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 170,
-          "transaction_id": 52,
+          "id": 175,
+          "transaction_id": 55,
           "product_id": 2,
           "quantity": 5,
           "unit_price": "3000.00",
@@ -6338,8 +6545,8 @@
           }
         },
         {
-          "id": 171,
-          "transaction_id": 52,
+          "id": 176,
+          "transaction_id": 55,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -6371,8 +6578,8 @@
           }
         },
         {
-          "id": 172,
-          "transaction_id": 52,
+          "id": 177,
+          "transaction_id": 55,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
@@ -6406,7 +6613,7 @@
       ]
     },
     {
-      "id": 53,
+      "id": 56,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-25",
@@ -6418,8 +6625,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 173,
-          "transaction_id": 53,
+          "id": 178,
+          "transaction_id": 56,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -6451,8 +6658,8 @@
           }
         },
         {
-          "id": 174,
-          "transaction_id": 53,
+          "id": 179,
+          "transaction_id": 56,
           "product_id": 5,
           "quantity": 2,
           "unit_price": "18000.00",
@@ -6484,8 +6691,8 @@
           }
         },
         {
-          "id": 175,
-          "transaction_id": 53,
+          "id": 180,
+          "transaction_id": 56,
           "product_id": 2,
           "quantity": 4,
           "unit_price": "3000.00",
@@ -6517,8 +6724,8 @@
           }
         },
         {
-          "id": 176,
-          "transaction_id": 53,
+          "id": 181,
+          "transaction_id": 56,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -6552,7 +6759,7 @@
       ]
     },
     {
-      "id": 54,
+      "id": 57,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-25",
@@ -6564,8 +6771,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 177,
-          "transaction_id": 54,
+          "id": 182,
+          "transaction_id": 57,
           "product_id": 3,
           "quantity": 4,
           "unit_price": "3500.00",
@@ -6597,8 +6804,8 @@
           }
         },
         {
-          "id": 178,
-          "transaction_id": 54,
+          "id": 183,
+          "transaction_id": 57,
           "product_id": 6,
           "quantity": 3,
           "unit_price": "14000.00",
@@ -6630,8 +6837,8 @@
           }
         },
         {
-          "id": 179,
-          "transaction_id": 54,
+          "id": 184,
+          "transaction_id": 57,
           "product_id": 1,
           "quantity": 1,
           "unit_price": "15000.00",
@@ -6665,7 +6872,7 @@
       ]
     },
     {
-      "id": 55,
+      "id": 58,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-26",
@@ -6677,8 +6884,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 180,
-          "transaction_id": 55,
+          "id": 185,
+          "transaction_id": 58,
           "product_id": 2,
           "quantity": 6,
           "unit_price": "3000.00",
@@ -6710,8 +6917,8 @@
           }
         },
         {
-          "id": 181,
-          "transaction_id": 55,
+          "id": 186,
+          "transaction_id": 58,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -6743,8 +6950,8 @@
           }
         },
         {
-          "id": 182,
-          "transaction_id": 55,
+          "id": 187,
+          "transaction_id": 58,
           "product_id": 5,
           "quantity": 2,
           "unit_price": "18000.00",
@@ -6778,7 +6985,7 @@
       ]
     },
     {
-      "id": 56,
+      "id": 59,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-26",
@@ -6790,8 +6997,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 183,
-          "transaction_id": 56,
+          "id": 188,
+          "transaction_id": 59,
           "product_id": 1,
           "quantity": 2,
           "unit_price": "15000.00",
@@ -6823,8 +7030,8 @@
           }
         },
         {
-          "id": 184,
-          "transaction_id": 56,
+          "id": 189,
+          "transaction_id": 59,
           "product_id": 4,
           "quantity": 1,
           "unit_price": "70000.00",
@@ -6856,8 +7063,8 @@
           }
         },
         {
-          "id": 185,
-          "transaction_id": 56,
+          "id": 190,
+          "transaction_id": 59,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",
@@ -6889,8 +7096,8 @@
           }
         },
         {
-          "id": 186,
-          "transaction_id": 56,
+          "id": 191,
+          "transaction_id": 59,
           "product_id": 2,
           "quantity": 3,
           "unit_price": "3000.00",
@@ -6924,7 +7131,7 @@
       ]
     },
     {
-      "id": 57,
+      "id": 60,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-26",
@@ -6936,8 +7143,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 187,
-          "transaction_id": 57,
+          "id": 192,
+          "transaction_id": 60,
           "product_id": 3,
           "quantity": 3,
           "unit_price": "3500.00",
@@ -6969,8 +7176,8 @@
           }
         },
         {
-          "id": 188,
-          "transaction_id": 57,
+          "id": 193,
+          "transaction_id": 60,
           "product_id": 2,
           "quantity": 5,
           "unit_price": "3000.00",
@@ -7002,8 +7209,8 @@
           }
         },
         {
-          "id": 189,
-          "transaction_id": 57,
+          "id": 194,
+          "transaction_id": 60,
           "product_id": 5,
           "quantity": 1,
           "unit_price": "18000.00",
@@ -7037,7 +7244,7 @@
       ]
     },
     {
-      "id": 58,
+      "id": 61,
       "user_id": 1,
       "trx_type": "SALE",
       "trx_date": "2026-04-26",
@@ -7049,8 +7256,8 @@
       "deleted_at": null,
       "items": [
         {
-          "id": 190,
-          "transaction_id": 58,
+          "id": 195,
+          "transaction_id": 61,
           "product_id": 1,
           "quantity": 1,
           "unit_price": "15000.00",
@@ -7082,8 +7289,8 @@
           }
         },
         {
-          "id": 191,
-          "transaction_id": 58,
+          "id": 196,
+          "transaction_id": 61,
           "product_id": 3,
           "quantity": 2,
           "unit_price": "3500.00",
@@ -7115,8 +7322,8 @@
           }
         },
         {
-          "id": 192,
-          "transaction_id": 58,
+          "id": 197,
+          "transaction_id": 61,
           "product_id": 6,
           "quantity": 2,
           "unit_price": "14000.00",

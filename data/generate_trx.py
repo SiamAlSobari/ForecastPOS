@@ -44,6 +44,10 @@ def ymd(dt): return dt.strftime("%Y-%m-%d")
 base = datetime(2026, 4, 10, 8, 0, 0)
 
 # (day, h, m, s, type, [(pid, qty)])
+# Types:
+#   SALE      → penjualan (stock berkurang)
+#   PURCHASE  → pembelian/restock (stock bertambah)
+#   ADJUSTMENT→ koreksi stock manual / stock opname (stock bertambah/berkurang)
 # Design:
 #   P1 Sabun: stock=2, sells ~2/day → CRITICAL (habis 1 hari)
 #   P2 Mi:    stock=8, sells ~5/day → CRITICAL (habis 1-2 hari)
@@ -66,6 +70,8 @@ RAW = [
     (2, 11,30,25, "SALE", [(4,1),(6,4),(2,5)]),
     (2, 15,15,40, "SALE", [(1,2),(3,4),(5,2),(6,2)]),
     (2, 18,5,12, "SALE", [(2,4),(3,2)]),
+    # Apr 12 - Adjustment: stock opname koreksi (menemukan selisih stok)
+    (2, 19,30,0, "ADJUSTMENT", [(3,5)]),  # Air mineral ternyata ada 5 lebih dari catatan
     # Apr 13 (weekend peak)
     (3, 9,10,33, "SALE", [(2,8),(3,6),(1,3),(6,3)]),
     (3, 13,25,15, "SALE", [(4,2),(5,3),(2,4)]),
@@ -88,6 +94,8 @@ RAW = [
     (7, 11,10,30, "SALE", [(2,4),(3,4),(1,2),(6,2)]),
     (7, 15,35,18, "SALE", [(5,2),(4,1),(2,5)]),
     (7, 18,20,45, "SALE", [(1,1),(3,2),(6,3)]),
+    # Apr 17 - Adjustment: barang rusak/expired dihapus dari stok
+    (7, 19,0,0, "ADJUSTMENT", [(2,3),(6,2)]),  # Mi & Gula expired, koreksi tambah
     # Apr 18
     (8, 9,45,10, "SALE", [(2,6),(1,2),(3,3)]),
     (8, 13,15,38, "SALE", [(5,2),(4,1),(6,2)]),
@@ -105,6 +113,8 @@ RAW = [
     (11, 10,30,18, "SALE", [(2,5),(3,3),(1,2)]),
     (11, 15,20,42, "SALE", [(4,1),(5,2),(6,3)]),
     (11, 18,40,10, "SALE", [(2,4),(3,2),(1,1)]),
+    # Apr 21 - Adjustment: stock opname berkala
+    (11, 19,15,0, "ADJUSTMENT", [(5,4),(4,2)]),  # Minyak & Beras ditemukan sisa lebih
     # Apr 22
     (12, 9,8,15, "SALE", [(2,5),(3,4),(6,2),(5,2)]),
     (12, 13,42,30, "SALE", [(1,2),(4,1),(2,3)]),
@@ -163,7 +173,8 @@ print(f"OK: {len(transactions)} transaksi, {item_id-1} items")
 for pid, p in PRODUCTS.items():
     sales = sum(q for _,_,_,_,t,items in RAW if t=="SALE" for pp,q in items if pp==pid)
     purch = sum(q for _,_,_,_,t,items in RAW if t=="PURCHASE" for pp,q in items if pp==pid)
+    adj = sum(q for _,_,_,_,t,items in RAW if t=="ADJUSTMENT" for pp,q in items if pp==pid)
     avg = sales/17
     stock = p["stock"]
     days = stock/avg if avg > 0 else 999
-    print(f"  P{pid} {p['name']:20s} | stock={stock:3d} | sold={sales:3d} | purchased={purch:3d} | avg/day={avg:.1f} | ~{days:.0f} days")
+    print(f"  P{pid} {p['name']:20s} | stock={stock:3d} | sold={sales:3d} | purchased={purch:3d} | adjusted={adj:3d} | avg/day={avg:.1f} | ~{days:.0f} days")
