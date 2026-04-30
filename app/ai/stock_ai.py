@@ -64,7 +64,14 @@ def extract_product_info(transactions: list[dict], product_id: int) -> dict:
 def build_daily_dataframe(transactions: list[dict], product_id: int) -> pd.DataFrame:
     """
     Membangun DataFrame harian untuk product tertentu.
-    Kolom: date, sold (jumlah terjual), purchased (jumlah beli/restock).
+    Kolom: date, sold (jumlah terjual), purchased (jumlah beli/restock),
+           adjusted (jumlah koreksi stok dari ADJUSTMENT).
+
+    Tipe transaksi yang dihandle:
+    - SALE       → mengurangi stok (kolom 'sold')
+    - PURCHASE   → menambah stok (kolom 'purchased')
+    - ADJUSTMENT → koreksi stok manual / stock opname (kolom 'adjusted',
+                   diperlakukan sebagai penambahan stok)
     """
     records: list[dict] = []
     for trx in transactions:
@@ -79,11 +86,11 @@ def build_daily_dataframe(transactions: list[dict], product_id: int) -> pd.DataF
                 })
 
     if not records:
-        return pd.DataFrame(columns=["date", "sold", "purchased"])
+        return pd.DataFrame(columns=["date", "sold", "purchased", "adjusted"])
 
     df = pd.DataFrame(records)
 
-    # Pisahkan SALE vs PURCHASE
+    # Pisahkan SALE vs PURCHASE vs ADJUSTMENT
     sales = (
         df[df["type"] == "SALE"]
         .groupby("date")["quantity"]
@@ -96,6 +103,12 @@ def build_daily_dataframe(transactions: list[dict], product_id: int) -> pd.DataF
         .sum()
         .rename("purchased")
     )
+    adjustments = (
+        df[df["type"] == "ADJUSTMENT"]
+        .groupby("date")["quantity"]
+        .sum()
+        .rename("adjusted")
+    )
 
     # Gabungkan ke range tanggal penuh (termasuk hari tanpa transaksi)
     min_date = df["date"].min()
@@ -105,8 +118,10 @@ def build_daily_dataframe(transactions: list[dict], product_id: int) -> pd.DataF
     daily = pd.DataFrame({"date": full_range})
     daily = daily.merge(sales, left_on="date", right_index=True, how="left")
     daily = daily.merge(purchases, left_on="date", right_index=True, how="left")
+    daily = daily.merge(adjustments, left_on="date", right_index=True, how="left")
     daily["sold"] = daily["sold"].fillna(0).astype(int)
     daily["purchased"] = daily["purchased"].fillna(0).astype(int)
+    daily["adjusted"] = daily["adjusted"].fillna(0).astype(int)
 
     return daily
 
@@ -167,11 +182,15 @@ def predict_future_sales(
 
 def compute_current_stock(daily: pd.DataFrame) -> int:
     """
-    Menghitung stok saat ini berdasarkan total purchased - total sold.
+    Menghitung stok saat ini berdasarkan:
+    total (purchased + adjusted) - total sold.
+
+    ADJUSTMENT diperlakukan sebagai penambahan stok (koreksi positif).
     """
     total_purchased = int(daily["purchased"].sum())
+    total_adjusted = int(daily["adjusted"].sum()) if "adjusted" in daily.columns else 0
     total_sold = int(daily["sold"].sum())
-    return total_purchased - total_sold
+    return (total_purchased + total_adjusted) - total_sold
 
 
 def determine_urgency(days_until_empty: Optional[int], estimated_empty_date: Optional[str]) -> dict:
@@ -342,10 +361,12 @@ def analyze_restock(
         "to": daily["date"].max().strftime("%Y-%m-%d"),
         "total_days": len(daily),
     }
+    total_adjusted = int(daily["adjusted"].sum()) if "adjusted" in daily.columns else 0
     result["historical_stats"] = {
         "avg_daily_sales": round(avg_daily, 1),
         "total_sold": int(daily["sold"].sum()),
         "total_purchased": int(daily["purchased"].sum()),
+        "total_adjusted": total_adjusted,
         "max_daily_sales": int(daily["sold"].max()),
         "min_daily_sales": int(daily["sold"].min()),
     }
