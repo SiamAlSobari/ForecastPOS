@@ -10,7 +10,8 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
+from sklearn.ensemble import RandomForestRegressor
 
 
 # ─── Constants ────────────────────────────────────────────────────────────────
@@ -128,26 +129,58 @@ def build_daily_dataframe(transactions: list[dict], product_id: int) -> pd.DataF
 
 # ─── Model: Prediksi Penjualan Harian ────────────────────────────────────────
 
-def train_sales_model(daily: pd.DataFrame) -> tuple[LinearRegression, float]:
+class SmartStockEnsemble:
+    """Ensemble pintar: Ridge (untuk tren stabil) + Random Forest (jika data cukup)"""
+    def __init__(self):
+        self.ridge = Ridge(alpha=1.0)
+        self.rf = RandomForestRegressor(n_estimators=50, max_depth=3, random_state=42)
+        self.use_rf = False
+
+    def fit(self, X, y):
+        self.ridge.fit(X, y)
+        if len(y) > 10:
+            self.rf.fit(X, y)
+            self.use_rf = True
+
+    def predict(self, X):
+        p_ridge = self.ridge.predict(X)
+        if self.use_rf:
+            p_rf = self.rf.predict(X)
+            return (p_ridge * 0.7) + (p_rf * 0.3)
+        return p_ridge
+
+
+def train_sales_model(daily: pd.DataFrame) -> tuple[SmartStockEnsemble, float]:
     """
-    Melatih model Linear Regression berdasarkan fitur hari.
-    Features: day_of_week (0=Senin..6=Minggu), day_index (urutan hari).
+    Melatih model ensemble cerdas (Ridge + RF).
+    Menambahkan fitur weekend, payday (tanggal gajian), dan filter outlier.
     Returns: (model, avg_daily_sales)
     """
     if daily.empty or daily["sold"].sum() == 0:
-        model = LinearRegression()
-        # Fit with dummy data to avoid NotFittedError (will always predict 0)
-        model.fit(np.array([[0, 0], [1, 1]]), np.array([0, 0]))
+        model = SmartStockEnsemble()
+        model.fit(np.array([[0, 0, 0, 0], [1, 1, 0, 0]]), np.array([0, 0]))
         return model, 0.0
 
     daily = daily.copy()
     daily["day_of_week"] = daily["date"].dt.dayofweek
     daily["day_index"] = (daily["date"] - daily["date"].min()).dt.days
+    daily["is_weekend"] = (daily["day_of_week"] >= 5).astype(int)
+    
+    # Fitur cerdas: Tanggal gajian (biasanya 25 sampai 2)
+    daily["day_of_month"] = daily["date"].dt.day
+    daily["is_payday"] = ((daily["day_of_month"] >= 25) | (daily["day_of_month"] <= 2)).astype(int)
 
-    X = daily[["day_of_week", "day_index"]].values
-    y = daily["sold"].values
+    # Outlier handling: Mencegah spike wholesale/borongan merusak tren
+    y_raw = daily["sold"].values
+    if len(y_raw) > 10:
+        p95 = np.percentile(y_raw, 95)
+        y = np.clip(y_raw, 0, max(p95, 1))
+    else:
+        y = y_raw
 
-    model = LinearRegression()
+    X = daily[["day_of_week", "day_index", "is_weekend", "is_payday"]].values
+
+    model = SmartStockEnsemble()
     model.fit(X, y)
 
     avg_daily = float(daily["sold"].mean())
@@ -155,9 +188,10 @@ def train_sales_model(daily: pd.DataFrame) -> tuple[LinearRegression, float]:
 
 
 def predict_future_sales(
-    model: LinearRegression,
+    model: SmartStockEnsemble,
     start_date: datetime,
     base_day_index: int,
+    avg_daily_sales: float,
     days_ahead: int = 30,
 ) -> list[dict]:
     """
@@ -165,11 +199,28 @@ def predict_future_sales(
     Returns list of {date, predicted_sales}.
     """
     predictions = []
+    # Mencegah ekstrapolasi linear yang agresif (terutama jika riwayat data sedikit).
+    # Batasi prediksi harian maksimal 1.5x dari rata-rata historis.
+    # Untuk produk yang sangat slow-moving, kita batasi maksimal 2x rata-ratanya (tapi mentok 1.0).
+    if avg_daily_sales > 1.0:
+        max_allowed = avg_daily_sales * 1.5
+    else:
+        max_allowed = min(avg_daily_sales * 2.0, 1.0)
+
     for i in range(days_ahead):
         future_date = start_date + timedelta(days=i)
         dow = future_date.weekday()
         day_idx = base_day_index + i
-        predicted = max(0, model.predict(np.array([[dow, day_idx]]))[0])
+        is_wknd = 1 if dow >= 5 else 0
+        dom = future_date.day
+        is_payday = 1 if (dom >= 25 or dom <= 2) else 0
+        
+        # Prediksi menggunakan Ensemble Model
+        predicted = model.predict(np.array([[dow, day_idx, is_wknd, is_payday]]))[0]
+        
+        # Cap prediksi agar tetap realistis dan grounded pada actual sales
+        predicted = max(0.0, min(predicted, max_allowed))
+        
         predictions.append({
             "date": future_date.strftime("%Y-%m-%d"),
             "day_name": future_date.strftime("%A"),
@@ -345,7 +396,7 @@ def analyze_restock(
     base_day_index = (last_date - daily["date"].min()).days + 1
 
     predictions = predict_future_sales(
-        model, start_forecast, base_day_index, forecast_days
+        model, start_forecast, base_day_index, avg_daily, forecast_days
     )
 
     # 6. Simulasi & analisis (sudah termasuk risk + risk_point)

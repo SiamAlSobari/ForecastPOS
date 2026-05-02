@@ -156,6 +156,10 @@ def build_hourly_features(df: pd.DataFrame) -> pd.DataFrame:
     agg["is_lunch"] = ((agg["hour"] >= 11) & (agg["hour"] <= 13)).astype(int)
     agg["is_morning"] = ((agg["hour"] >= 8) & (agg["hour"] <= 10)).astype(int)
     agg["is_evening"] = ((agg["hour"] >= 16) & (agg["hour"] <= 19)).astype(int)
+    
+    # Fitur cerdas: is_payday (Tanggal gajian biasanya 25 - 2)
+    agg["day_of_month"] = pd.to_datetime(agg["date"]).dt.day
+    agg["is_payday"] = ((agg["day_of_month"] >= 25) | (agg["day_of_month"] <= 2)).astype(int)
 
     # Rolling average per hour (across days)
     agg = agg.sort_values(["hour", "date"])
@@ -172,7 +176,7 @@ def build_hourly_features(df: pd.DataFrame) -> pd.DataFrame:
 FEATURE_COLS = [
     "hour", "day_of_week", "is_weekend", "day_index",
     "hour_sin", "hour_cos", "is_lunch", "is_morning", "is_evening",
-    "rolling_avg_trx", "rolling_avg_revenue",
+    "rolling_avg_trx", "rolling_avg_revenue", "is_payday"
 ]
 
 
@@ -182,15 +186,21 @@ class BusyHourEnsemble:
     """Ensemble of RF + GBR + Ridge for transaction count prediction."""
 
     def __init__(self):
-        self.rf = RandomForestRegressor(n_estimators=100, max_depth=6, random_state=42)
-        self.gbr = GradientBoostingRegressor(n_estimators=80, max_depth=4, learning_rate=0.1, random_state=42)
-        self.ridge = Ridge(alpha=1.0)
+        # Model diinisiasi saat fit agar bisa dynamic depth
         self.scaler = StandardScaler()
         self.weights = [0.45, 0.40, 0.15]  # RF, GBR, Ridge
         self.is_fitted = False
         self.metrics = {}
 
     def fit(self, X: np.ndarray, y: np.ndarray):
+        # Dynamic Depth: Mencegah overfit di data kecil, max power di data besar
+        n_samples = len(y)
+        depth = max(3, min(7, n_samples // 50))
+        
+        self.rf = RandomForestRegressor(n_estimators=100, max_depth=depth, random_state=42)
+        self.gbr = GradientBoostingRegressor(n_estimators=80, max_depth=max(2, depth-1), learning_rate=0.1, random_state=42)
+        self.ridge = Ridge(alpha=1.0)
+        
         X_scaled = self.scaler.fit_transform(X)
         self.rf.fit(X_scaled, y)
         self.gbr.fit(X_scaled, y)
@@ -233,6 +243,10 @@ class RevenueModel:
         self.is_fitted = False
 
     def fit(self, X, y):
+        n_samples = len(y)
+        depth = max(3, min(6, n_samples // 50))
+        self.model = GradientBoostingRegressor(n_estimators=60, max_depth=depth, random_state=42)
+        
         self.scaler.fit(X)
         self.model.fit(self.scaler.transform(X), y)
         self.is_fitted = True
@@ -340,8 +354,16 @@ def analyze_busy_hours(
     # 2. Feature engineering
     features_df = build_hourly_features(hourly_df)
     X = features_df[FEATURE_COLS].values
-    y_trx = features_df["trx_count"].values
-    y_rev = features_df["total_amount"].values
+    y_trx_raw = features_df["trx_count"].values
+    y_rev_raw = features_df["total_amount"].values
+
+    # Outlier handling: Mencegah lonjakan ekstrim (misal borongan tak terduga) merusak model jam reguler
+    if len(y_trx_raw) > 50:
+        y_trx = np.clip(y_trx_raw, 0, np.percentile(y_trx_raw, 99))
+        y_rev = np.clip(y_rev_raw, 0, np.percentile(y_rev_raw, 99))
+    else:
+        y_trx = y_trx_raw
+        y_rev = y_rev_raw
 
     # 3. Train models
     trx_model = BusyHourEnsemble()
@@ -353,10 +375,12 @@ def analyze_busy_hours(
     print(f"[MODEL] Trained | Accuracy: {trx_model.metrics.get('accuracy_percent', 0)}%")
 
     # 4. Percentile thresholds (internal use only)
+    # Tambahkan absolute minimum threshold agar toko yang sepi (misal max 1 trx/jam)
+    # tidak menganggap 1 trx sebagai "PEAK" hour.
     percentiles = {
-        "p40": float(np.percentile(y_trx[y_trx > 0], 40)) if np.any(y_trx > 0) else 0.5,
-        "p70": float(np.percentile(y_trx[y_trx > 0], 70)) if np.any(y_trx > 0) else 1.0,
-        "p90": float(np.percentile(y_trx[y_trx > 0], 90)) if np.any(y_trx > 0) else 1.5,
+        "p40": max(1.0, float(np.percentile(y_trx[y_trx > 0], 40))) if np.any(y_trx > 0) else 1.0,
+        "p70": max(2.0, float(np.percentile(y_trx[y_trx > 0], 70))) if np.any(y_trx > 0) else 2.0,
+        "p90": max(3.0, float(np.percentile(y_trx[y_trx > 0], 90))) if np.any(y_trx > 0) else 3.0,
     }
 
     # 5. Product probabilities
@@ -388,6 +412,9 @@ def analyze_busy_hours(
             is_lunch = 1 if 11 <= h <= 13 else 0
             is_morn = 1 if 8 <= h <= 10 else 0
             is_eve = 1 if 16 <= h <= 19 else 0
+            
+            dom = future_date.day
+            is_payday = 1 if (dom >= 25 or dom <= 2) else 0
 
             # Use historical rolling averages for this hour
             hist_h = features_df[features_df["hour"] == h]
@@ -396,42 +423,49 @@ def analyze_busy_hours(
 
             feat = np.array([[h, dow, is_wknd, day_idx,
                               h_sin, h_cos, is_lunch, is_morn, is_eve,
-                              roll_trx, roll_rev]])
+                              roll_trx, roll_rev, is_payday]])
 
             pred_trx = float(trx_model.predict(feat)[0])
             pred_rev = float(rev_model.predict(feat)[0])
+            
+            # Sanity check: hindari prediksi aneh (trx sangat kecil tapi revenue besar, atau sebaliknya)
+            if pred_trx < 0.2:
+                pred_trx = 0.0
+                pred_rev = 0.0
+            
             bl = classify_busy_level(pred_trx, percentiles)
 
             # Product predictions for this hour
             predicted_products = []
-            for pid, hour_data in product_probs.items():
-                if h in hour_data:
-                    dow_data = hour_data[h].get(dow)
-                    if not dow_data:
-                        # Fallback: average across all days for this hour
-                        all_dows = hour_data[h]
-                        avg_prob = np.mean([v["probability"] for v in all_dows.values()])
-                        avg_qty = np.mean([v["avg_qty"] for v in all_dows.values()])
-                        pinfo = catalog.get(pid, {"name": f"P#{pid}", "price": 0})
-                        if avg_prob > 0.1:
-                            est_qty = round(avg_qty * pred_trx, 1) if pred_trx > 0 else round(avg_qty, 1)
-                            predicted_products.append({
-                                "product_id": pid,
-                                "product_name": pinfo["name"],
-                                "probability": round(float(avg_prob), 3),
-                                "estimated_qty": max(0, est_qty),
-                                "estimated_revenue": round(est_qty * pinfo["price"], 0),
-                            })
-                    else:
-                        if dow_data["probability"] > 0.1:
-                            est_qty = round(dow_data["avg_qty"] * pred_trx, 1) if pred_trx > 0 else round(dow_data["avg_qty"], 1)
-                            predicted_products.append({
-                                "product_id": pid,
-                                "product_name": dow_data["product_name"],
-                                "probability": dow_data["probability"],
-                                "estimated_qty": max(0, est_qty),
-                                "estimated_revenue": round(est_qty * dow_data["product_price"], 0),
-                            })
+            if pred_trx > 0:
+                for pid, hour_data in product_probs.items():
+                    if h in hour_data:
+                        dow_data = hour_data[h].get(dow)
+                        if not dow_data:
+                            # Fallback: average across all days for this hour
+                            all_dows = hour_data[h]
+                            avg_prob = np.mean([v["probability"] for v in all_dows.values()])
+                            avg_qty = np.mean([v["avg_qty"] for v in all_dows.values()])
+                            pinfo = catalog.get(pid, {"name": f"P#{pid}", "price": 0})
+                            if avg_prob > 0.1:
+                                est_qty = round(avg_qty * pred_trx, 1)
+                                predicted_products.append({
+                                    "product_id": pid,
+                                    "product_name": pinfo["name"],
+                                    "probability": round(float(avg_prob), 3),
+                                    "estimated_qty": max(0, est_qty),
+                                    "estimated_revenue": round(est_qty * pinfo["price"], 0),
+                                })
+                        else:
+                            if dow_data["probability"] > 0.1:
+                                est_qty = round(dow_data["avg_qty"] * pred_trx, 1)
+                                predicted_products.append({
+                                    "product_id": pid,
+                                    "product_name": dow_data["product_name"],
+                                    "probability": dow_data["probability"],
+                                    "estimated_qty": max(0, est_qty),
+                                    "estimated_revenue": round(est_qty * dow_data["product_price"], 0),
+                                })
 
             predicted_products.sort(key=lambda x: x["probability"], reverse=True)
 
