@@ -10,20 +10,20 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import Ridge
 from sklearn.ensemble import RandomForestRegressor
-
+from sklearn.linear_model import Ridge
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 
 RISK_MAP = {
     "CRITICAL": {"risk": "CRITICAL", "risk_point": 3},
-    "MEDIUM":   {"risk": "MEDIUM",   "risk_point": 2},
-    "NORMAL":   {"risk": "NORMAL",   "risk_point": 1},
+    "MEDIUM": {"risk": "MEDIUM", "risk_point": 2},
+    "NORMAL": {"risk": "NORMAL", "risk_point": 1},
 }
 
 
 # ─── Helper: Parse ────────────────────────────────────────────────────────────
+
 
 def normalize_transactions(raw_data: dict | list) -> list[dict]:
     """Normalisasi input: bisa dict {data: [...]} atau langsung list."""
@@ -80,11 +80,13 @@ def build_daily_dataframe(transactions: list[dict], product_id: int) -> pd.DataF
         trx_type = trx["trx_type"]
         for item in trx.get("items", []):
             if item["product_id"] == product_id:
-                records.append({
-                    "date": pd.to_datetime(trx_date),
-                    "type": trx_type,
-                    "quantity": int(item["quantity"]),
-                })
+                records.append(
+                    {
+                        "date": pd.to_datetime(trx_date),
+                        "type": trx_type,
+                        "quantity": int(item["quantity"]),
+                    }
+                )
 
     if not records:
         return pd.DataFrame(columns=["date", "sold", "purchased", "adjusted"])
@@ -92,12 +94,7 @@ def build_daily_dataframe(transactions: list[dict], product_id: int) -> pd.DataF
     df = pd.DataFrame(records)
 
     # Pisahkan SALE vs PURCHASE vs ADJUSTMENT
-    sales = (
-        df[df["type"] == "SALE"]
-        .groupby("date")["quantity"]
-        .sum()
-        .rename("sold")
-    )
+    sales = df[df["type"] == "SALE"].groupby("date")["quantity"].sum().rename("sold")
     purchases = (
         df[df["type"] == "PURCHASE"]
         .groupby("date")["quantity"]
@@ -129,8 +126,10 @@ def build_daily_dataframe(transactions: list[dict], product_id: int) -> pd.DataF
 
 # ─── Model: Prediksi Penjualan Harian ────────────────────────────────────────
 
+
 class SmartStockEnsemble:
     """Ensemble pintar: Ridge (untuk tren stabil) + Random Forest (jika data cukup)"""
+
     def __init__(self):
         self.ridge = Ridge(alpha=1.0)
         self.rf = RandomForestRegressor(n_estimators=50, max_depth=3, random_state=42)
@@ -154,21 +153,23 @@ def train_sales_model(daily: pd.DataFrame) -> tuple[SmartStockEnsemble, float]:
     """
     Melatih model ensemble cerdas (Ridge + RF).
     Menambahkan fitur weekend, payday (tanggal gajian), dan filter outlier.
-    Returns: (model, avg_daily_sales)
+    Returns: (model, avg_daily_sales, accuracy_percent)
     """
     if daily.empty or daily["sold"].sum() == 0:
         model = SmartStockEnsemble()
         model.fit(np.array([[0, 0, 0, 0], [1, 1, 0, 0]]), np.array([0, 0]))
-        return model, 0.0
+        return model, 0.0, 0.0
 
     daily = daily.copy()
     daily["day_of_week"] = daily["date"].dt.dayofweek
     daily["day_index"] = (daily["date"] - daily["date"].min()).dt.days
     daily["is_weekend"] = (daily["day_of_week"] >= 5).astype(int)
-    
+
     # Fitur cerdas: Tanggal gajian (biasanya 25 sampai 2)
     daily["day_of_month"] = daily["date"].dt.day
-    daily["is_payday"] = ((daily["day_of_month"] >= 25) | (daily["day_of_month"] <= 2)).astype(int)
+    daily["is_payday"] = (
+        (daily["day_of_month"] >= 25) | (daily["day_of_month"] <= 2)
+    ).astype(int)
 
     # Outlier handling: Mencegah spike wholesale/borongan merusak tren
     y_raw = daily["sold"].values
@@ -183,8 +184,12 @@ def train_sales_model(daily: pd.DataFrame) -> tuple[SmartStockEnsemble, float]:
     model = SmartStockEnsemble()
     model.fit(X, y)
 
+    y_pred = model.predict(X)
+    mape = np.mean(np.abs((y - y_pred) / np.where(y == 0, 1, y))) * 100
+    accuracy_pct = round(max(0, min(100, (1 - mape / 100) * 100)), 2)
+
     avg_daily = float(daily["sold"].mean())
-    return model, avg_daily
+    return model, avg_daily, accuracy_pct
 
 
 def predict_future_sales(
@@ -214,22 +219,25 @@ def predict_future_sales(
         is_wknd = 1 if dow >= 5 else 0
         dom = future_date.day
         is_payday = 1 if (dom >= 25 or dom <= 2) else 0
-        
+
         # Prediksi menggunakan Ensemble Model
         predicted = model.predict(np.array([[dow, day_idx, is_wknd, is_payday]]))[0]
-        
+
         # Cap prediksi agar tetap realistis dan grounded pada actual sales
         predicted = max(0.0, min(predicted, max_allowed))
-        
-        predictions.append({
-            "date": future_date.strftime("%Y-%m-%d"),
-            "day_name": future_date.strftime("%A"),
-            "predicted_sales": round(predicted, 1),
-        })
+
+        predictions.append(
+            {
+                "date": future_date.strftime("%Y-%m-%d"),
+                "day_name": future_date.strftime("%A"),
+                "predicted_sales": round(predicted, 1),
+            }
+        )
     return predictions
 
 
 # ─── Simulasi Stok & Urgency ──────────────────────────────────────────────────
+
 
 def compute_current_stock(daily: pd.DataFrame) -> int:
     """
@@ -244,7 +252,9 @@ def compute_current_stock(daily: pd.DataFrame) -> int:
     return (total_purchased + total_adjusted) - total_sold
 
 
-def determine_urgency(days_until_empty: Optional[int], estimated_empty_date: Optional[str]) -> dict:
+def determine_urgency(
+    days_until_empty: Optional[int], estimated_empty_date: Optional[str]
+) -> dict:
     """
     Menentukan level urgensi dan risk point berdasarkan hari sampai stok habis.
 
@@ -309,12 +319,14 @@ def simulate_stock_depletion(
         daily_sales = round(pred["predicted_sales"])
         stock = max(0, stock - daily_sales)
 
-        timeline.append({
-            "date": pred["date"],
-            "day_name": pred["day_name"],
-            "predicted_sales": pred["predicted_sales"],
-            "remaining_stock": stock,
-        })
+        timeline.append(
+            {
+                "date": pred["date"],
+                "day_name": pred["day_name"],
+                "predicted_sales": pred["predicted_sales"],
+                "remaining_stock": stock,
+            }
+        )
 
         if stock <= 0 and days_until_empty is None:
             days_until_empty = i + 1
@@ -345,6 +357,7 @@ def simulate_stock_depletion(
 
 
 # ─── Main Entry Point ────────────────────────────────────────────────────────
+
 
 def analyze_restock(
     transactions: list[dict],
@@ -379,7 +392,13 @@ def analyze_restock(
         }
 
     # 3. Train model
-    model, avg_daily = train_sales_model(daily)
+    model, avg_daily, accuracy_pct = train_sales_model(daily)
+    
+    print("\n" + "=" * 70)
+    print(f"[STOCK] PREDICTION ENGINE - Analysis for Product '{product_info['product_name']}'")
+    print("=" * 70)
+    print(f"[DATA] Loaded: {len(daily)} days of transaction data")
+    print(f"[MODEL] Trained | Accuracy: {accuracy_pct}%")
 
     # 4. Hitung stok saat ini
     # Prioritas: override > stock dari nested product.stocks > hitung dari data
@@ -390,10 +409,12 @@ def analyze_restock(
     else:
         current_stock = compute_current_stock(daily)
 
-    # 5. Prediksi ke depan
+    # 5. Prediksi ke depan (mulai dari hari ini)
     last_date = daily["date"].max()
-    start_forecast = last_date + timedelta(days=1)
-    base_day_index = (last_date - daily["date"].min()).days + 1
+    start_forecast = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Base day index for the start_forecast
+    base_day_index = (start_forecast - daily["date"].min()).days
 
     predictions = predict_future_sales(
         model, start_forecast, base_day_index, avg_daily, forecast_days
@@ -421,5 +442,9 @@ def analyze_restock(
         "max_daily_sales": int(daily["sold"].max()),
         "min_daily_sales": int(daily["sold"].min()),
     }
+
+    print(f"\n[FORECAST] {forecast_days} hari | Accuracy: {accuracy_pct}%")
+    print(f"[URGENCY] {result['urgency_level']} ({result['days_until_empty']} days until empty)")
+    print(f"[DONE] Analysis complete!\n")
 
     return result
