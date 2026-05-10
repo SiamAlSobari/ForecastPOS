@@ -15,8 +15,13 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
-from sklearn.linear_model import Ridge
+from sklearn.ensemble import (
+    GradientBoostingRegressor,
+    HistGradientBoostingRegressor,
+    RandomForestRegressor,
+    VotingRegressor,
+)
+from sklearn.linear_model import HuberRegressor, Ridge
 from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
@@ -175,6 +180,9 @@ def build_hourly_features(df: pd.DataFrame) -> pd.DataFrame:
         (agg["day_of_month"] >= 25) | (agg["day_of_month"] <= 2)
     ).astype(int)
 
+    # Super feature: Payday + Weekend (kombinasi paling ramai)
+    agg["is_payday_weekend"] = agg["is_payday"] * agg["is_weekend"]
+
     # Rolling average per hour (across days)
     agg = agg.sort_values(["hour", "date"])
     agg["rolling_avg_trx"] = agg.groupby("hour")["trx_count"].transform(
@@ -200,6 +208,7 @@ FEATURE_COLS = [
     "rolling_avg_trx",
     "rolling_avg_revenue",
     "is_payday",
+    "is_payday_weekend",
 ]
 
 
@@ -207,35 +216,35 @@ FEATURE_COLS = [
 
 
 class BusyHourEnsemble:
-    """Ensemble of RF + GBR + Ridge for transaction count prediction."""
+    """Super AI: Voting Regressor dengan RF, HistGBR, dan Huber."""
 
     def __init__(self):
-        # Model diinisiasi saat fit agar bisa dynamic depth
         self.scaler = StandardScaler()
-        self.weights = [0.45, 0.40, 0.15]  # RF, GBR, Ridge
         self.is_fitted = False
         self.metrics = {}
 
     def fit(self, X: np.ndarray, y: np.ndarray):
-        # Dynamic Depth: Mencegah overfit di data kecil, max power di data besar
         n_samples = len(y)
-        depth = max(3, min(7, n_samples // 50))
+        depth = max(3, min(8, n_samples // 40))
 
-        self.rf = RandomForestRegressor(
-            n_estimators=100, max_depth=depth, random_state=42
-        )
-        self.gbr = GradientBoostingRegressor(
-            n_estimators=80,
-            max_depth=max(2, depth - 1),
-            learning_rate=0.1,
+        rf = RandomForestRegressor(n_estimators=200, max_depth=depth, random_state=42)
+        hgb = HistGradientBoostingRegressor(
+            max_iter=200,
+            max_depth=depth,
+            learning_rate=0.05,
+            l2_regularization=0.1,
             random_state=42,
         )
-        self.ridge = Ridge(alpha=1.0)
+        huber = HuberRegressor(epsilon=1.35)
+
+        # VotingRegressor akan otomatis menyeimbangkan prediksi dari ke-3 model
+        self.ensemble = VotingRegressor(
+            estimators=[("rf", rf), ("hgb", hgb), ("huber", huber)],
+            weights=[0.35, 0.50, 0.15],  # HistGBR paling pintar tangkap pola jam
+        )
 
         X_scaled = self.scaler.fit_transform(X)
-        self.rf.fit(X_scaled, y)
-        self.gbr.fit(X_scaled, y)
-        self.ridge.fit(X_scaled, y)
+        self.ensemble.fit(X_scaled, y)
         self.is_fitted = True
         self._compute_metrics(X, y)
 
@@ -243,13 +252,8 @@ class BusyHourEnsemble:
         if not self.is_fitted:
             return np.zeros(X.shape[0])
         X_scaled = self.scaler.transform(X)
-        p_rf = self.rf.predict(X_scaled)
-        p_gbr = self.gbr.predict(X_scaled)
-        p_ridge = self.ridge.predict(X_scaled)
-        ensemble = (
-            self.weights[0] * p_rf + self.weights[1] * p_gbr + self.weights[2] * p_ridge
-        )
-        return np.maximum(0, ensemble)
+        pred = self.ensemble.predict(X_scaled)
+        return np.maximum(0, pred)
 
     def _compute_metrics(self, X: np.ndarray, y: np.ndarray):
         """Hitung akurasi model (simplified)."""
@@ -267,30 +271,29 @@ class BusyHourEnsemble:
 
 
 class RevenueModel:
-    """Simpler model for revenue prediction per hour."""
+    """Super AI Revenue: Menggunakan Log-Transform dan HistGBR untuk memprediksi uang/omset."""
 
     def __init__(self):
-        self.model = GradientBoostingRegressor(
-            n_estimators=60, max_depth=4, random_state=42
-        )
         self.scaler = StandardScaler()
+        self.model = HistGradientBoostingRegressor(
+            max_iter=150, max_depth=5, learning_rate=0.05, random_state=42
+        )
         self.is_fitted = False
 
-    def fit(self, X, y):
-        n_samples = len(y)
-        depth = max(3, min(6, n_samples // 50))
-        self.model = GradientBoostingRegressor(
-            n_estimators=60, max_depth=depth, random_state=42
-        )
-
-        self.scaler.fit(X)
-        self.model.fit(self.scaler.transform(X), y)
+    def fit(self, X: np.ndarray, y: np.ndarray):
+        # Transformasi Log untuk Revenue karena angkanya bisa jutaan dan rentan terdistorsi (skewed)
+        self.y_log = np.log1p(y)
+        X_scaled = self.scaler.fit_transform(X)
+        self.model.fit(X_scaled, self.y_log)
         self.is_fitted = True
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
         if not self.is_fitted:
             return np.zeros(X.shape[0])
-        return np.maximum(0, self.model.predict(self.scaler.transform(X)))
+        X_scaled = self.scaler.transform(X)
+        p_log = self.model.predict(X_scaled)
+        # Kembalikan ke angka normal (eksponensial) dari log
+        return np.expm1(p_log)
 
 
 # ─── Product Probability Model ───────────────────────────────────────────────
@@ -473,6 +476,7 @@ def analyze_busy_hours(
 
             dom = future_date.day
             is_payday = 1 if (dom >= 25 or dom <= 2) else 0
+            is_payday_wknd = is_payday * is_wknd
 
             # Use historical rolling averages for this hour
             hist_h = features_df[features_df["hour"] == h]
@@ -498,6 +502,7 @@ def analyze_busy_hours(
                         roll_trx,
                         roll_rev,
                         is_payday,
+                        is_payday_wknd,
                     ]
                 ]
             )

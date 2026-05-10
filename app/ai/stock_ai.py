@@ -10,7 +10,11 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import (
+    GradientBoostingRegressor,
+    HistGradientBoostingRegressor,
+    RandomForestRegressor,
+)
 from sklearn.linear_model import Ridge
 
 # ─── Constants ────────────────────────────────────────────────────────────────
@@ -128,36 +132,47 @@ def build_daily_dataframe(transactions: list[dict], product_id: int) -> pd.DataF
 
 
 class SmartStockEnsemble:
-    """Ensemble pintar: Ridge (untuk tren stabil) + Random Forest (jika data cukup)"""
+    """Super AI: Ridge (baseline) + Random Forest + HistGradientBoosting (sangat presisi untuk big data tabular)"""
 
     def __init__(self):
         self.ridge = Ridge(alpha=1.0)
-        self.rf = RandomForestRegressor(n_estimators=50, max_depth=3, random_state=42)
-        self.use_rf = False
+        self.rf = RandomForestRegressor(n_estimators=150, max_depth=5, random_state=42)
+        # HistGBR adalah algoritma ala LightGBM bawaan Sklearn, lebih cepat & pintar dari GBR biasa
+        self.hgb = HistGradientBoostingRegressor(
+            max_iter=150,
+            max_depth=5,
+            learning_rate=0.05,
+            l2_regularization=0.1,
+            random_state=42,
+        )
+        self.use_trees = False
 
     def fit(self, X, y):
         self.ridge.fit(X, y)
-        if len(y) > 10:
+        if len(y) > 14:
             self.rf.fit(X, y)
-            self.use_rf = True
+            self.hgb.fit(X, y)
+            self.use_trees = True
 
     def predict(self, X):
         p_ridge = self.ridge.predict(X)
-        if self.use_rf:
+        if self.use_trees:
             p_rf = self.rf.predict(X)
-            return (p_ridge * 0.7) + (p_rf * 0.3)
+            p_hgb = self.hgb.predict(X)
+            # Bobot: 50% HistGBR (paling pintar), 35% RF (paling stabil), 15% Ridge (garis aman)
+            return (p_hgb * 0.50) + (p_rf * 0.35) + (p_ridge * 0.15)
         return p_ridge
 
 
 def train_sales_model(daily: pd.DataFrame) -> tuple[SmartStockEnsemble, float]:
     """
-    Melatih model ensemble cerdas (Ridge + RF).
-    Menambahkan fitur weekend, payday (tanggal gajian), dan filter outlier.
+    Melatih model ensemble cerdas (Ridge + RF + HGB).
+    Menambahkan fitur weekend, payday (tanggal gajian), awal bulan, dan filter outlier.
     Returns: (model, avg_daily_sales, accuracy_percent)
     """
     if daily.empty or daily["sold"].sum() == 0:
         model = SmartStockEnsemble()
-        model.fit(np.array([[0, 0, 0, 0], [1, 1, 0, 0]]), np.array([0, 0]))
+        model.fit(np.array([[0, 0, 0, 0, 0, 0], [1, 1, 0, 0, 0, 0]]), np.array([0, 0]))
         return model, 0.0, 0.0
 
     daily = daily.copy()
@@ -171,6 +186,12 @@ def train_sales_model(daily: pd.DataFrame) -> tuple[SmartStockEnsemble, float]:
         (daily["day_of_month"] >= 25) | (daily["day_of_month"] <= 2)
     ).astype(int)
 
+    # Fitur super cerdas: Awal bulan (dompet masih tebal) dan Tengah bulan (kritis)
+    daily["is_start_month"] = (daily["day_of_month"] <= 5).astype(int)
+    daily["is_mid_month"] = (
+        (daily["day_of_month"] > 10) & (daily["day_of_month"] <= 20)
+    ).astype(int)
+
     # Outlier handling: Mencegah spike wholesale/borongan merusak tren
     y_raw = daily["sold"].values
     if len(y_raw) > 10:
@@ -179,7 +200,16 @@ def train_sales_model(daily: pd.DataFrame) -> tuple[SmartStockEnsemble, float]:
     else:
         y = y_raw
 
-    X = daily[["day_of_week", "day_index", "is_weekend", "is_payday"]].values
+    X = daily[
+        [
+            "day_of_week",
+            "day_index",
+            "is_weekend",
+            "is_payday",
+            "is_start_month",
+            "is_mid_month",
+        ]
+    ].values
 
     model = SmartStockEnsemble()
     model.fit(X, y)
@@ -219,9 +249,13 @@ def predict_future_sales(
         is_wknd = 1 if dow >= 5 else 0
         dom = future_date.day
         is_payday = 1 if (dom >= 25 or dom <= 2) else 0
+        is_start_month = 1 if dom <= 5 else 0
+        is_mid_month = 1 if 10 < dom <= 20 else 0
 
         # Prediksi menggunakan Ensemble Model
-        predicted = model.predict(np.array([[dow, day_idx, is_wknd, is_payday]]))[0]
+        predicted = model.predict(
+            np.array([[dow, day_idx, is_wknd, is_payday, is_start_month, is_mid_month]])
+        )[0]
 
         # Cap prediksi agar tetap realistis dan grounded pada actual sales
         predicted = max(0.0, min(predicted, max_allowed))
@@ -393,9 +427,11 @@ def analyze_restock(
 
     # 3. Train model
     model, avg_daily, accuracy_pct = train_sales_model(daily)
-    
+
     print("\n" + "=" * 70)
-    print(f"[STOCK] PREDICTION ENGINE - Analysis for Product '{product_info['product_name']}'")
+    print(
+        f"[STOCK] PREDICTION ENGINE - Analysis for Product '{product_info['product_name']}'"
+    )
     print("=" * 70)
     print(f"[DATA] Loaded: {len(daily)} days of transaction data")
     print(f"[MODEL] Trained | Accuracy: {accuracy_pct}%")
@@ -444,7 +480,9 @@ def analyze_restock(
     }
 
     print(f"\n[FORECAST] {forecast_days} hari | Accuracy: {accuracy_pct}%")
-    print(f"[URGENCY] {result['urgency_level']} ({result['days_until_empty']} days until empty)")
+    print(
+        f"[URGENCY] {result['urgency_level']} ({result['days_until_empty']} days until empty)"
+    )
     print(f"[DONE] Analysis complete!\n")
 
     return result
