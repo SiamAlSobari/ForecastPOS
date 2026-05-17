@@ -90,3 +90,29 @@ Sebagai AI, saya juga menyarankan agar model `stock_ai.py` kita diajari kalender
    - Buat `app/ai/llm_insights.py` untuk mengolah summary data (termasuk deteksi tanggal/musim) sebelum dikirim ke API LLM.
 5. **(Opsional) Upgrade Model ML (Solusi Jangka Panjang):**
    - Tambahkan integrasi modul `holidays` Python ke dataset training di `stock_ai.py` untuk mengajari AI tentang libur nasional dan anomali musiman.
+
+---
+
+## 5. Dampak pada Sisi Laravel (Backend Utama & Database)
+Perubahan drastis di Python (AI Engine) pasti menuntut penyesuaian di Laravel sebagai jembatan utama ke aplikasi mobile. Berikut adalah gambaran penyesuaian yang mungkin diperlukan:
+
+### A. Penyesuaian Response Format (Controller Laravel)
+- Jika Laravel menyimpan hasil prediksi ke database (bukan sekadar passthrough/bypass), maka tipe data yang sebelumnya tunggal (misal `float/integer`) harus diubah untuk menangani objek range.
+- **Lebih direkomendasikan:** Jadikan Laravel hanya sebagai *passthrough* untuk hasil prediksi ini, atau simpan hasil JSON mentahnya dalam format kolom `JSON/TEXT` di database Laravel agar schema tidak terlalu sering dibongkar.
+
+### B. Penambahan Tabel Baru untuk Caching LLM (`ai_insights`)
+Karena *request* ke LLM (OpenAI/Gemini) menggunakan API berbayar dan memakan waktu (latency beberapa detik), **JANGAN eksekusi LLM setiap kali user membuka aplikasi**.
+- **Solusi Database:** Buat tabel baru di Laravel, misal `ai_insights`.
+  - `id` (PK)
+  - `date` (Tanggal insight dibuat, misal: 2026-05-17)
+  - `insight_type` (Enum: 'daily_summary', 'stock_warning')
+  - `content` (Teks nasehat dari LLM)
+  - `created_at` / `updated_at`
+- **Alur Kerja (Cronjob/Task Scheduling):** 
+  Laravel menjalankan Cronjob setiap pagi (misal jam 06:00). Laravel meminta data prediksi ke Python -> Python merangkum data dan memanggil LLM -> Hasil dari LLM disimpan di tabel `ai_insights`.
+  Saat pemilik warung buka aplikasi, Laravel cukup query: `SELECT content FROM ai_insights WHERE date = TODAY`, sehingga aplikasinya memuat instan (0 detik) dan token LLM hanya terpakai 1x sehari!
+
+### C. Pembuatan Route Baru
+- `GET /api/ai/insights` -> Mengambil nasehat LLM dari database Laravel untuk ditampilkan di Dashboard Mobile.
+- `GET /api/ai/busy-hours` -> (Disesuaikan) untuk mengirimkan format range ke frontend.
+- `GET /api/ai/stocks` -> (Disesuaikan) untuk mengirimkan format range dan status "Dead Stock" ke frontend.
