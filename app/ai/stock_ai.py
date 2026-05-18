@@ -502,49 +502,38 @@ def analyze_restock(
 
 # ─── Holiday Detection (Seasonal Awareness) ──────────────────────────────────
 
-# Kalender libur nasional Indonesia (yang paling berdampak ke penjualan warung)
-# Untuk production, bisa diganti dengan library `holidays` Python.
-MAJOR_HOLIDAYS_2026 = {
-    (1, 1): "Tahun Baru",
-    (1, 29): "Tahun Baru Imlek",
-    (3, 20): "Isra Mi'raj",
-    (3, 22): "Hari Raya Nyepi",
-    (3, 28): "Awal Ramadan (estimasi)",
-    (4, 18): "Wafat Isa Al-Masih",
-    (4, 27): "Idul Fitri (estimasi)",
-    (4, 28): "Idul Fitri (estimasi)",
-    (5, 1): "Hari Buruh",
-    (5, 12): "Hari Raya Waisak",
-    (5, 29): "Kenaikan Isa Al-Masih",
-    (6, 1): "Hari Lahir Pancasila",
-    (7, 4): "Idul Adha (estimasi)",
-    (7, 25): "Tahun Baru Hijriah (estimasi)",
-    (8, 17): "Hari Kemerdekaan",
-    (10, 3): "Maulid Nabi (estimasi)",
-    (12, 25): "Natal",
-    (12, 31): "Malam Tahun Baru",
-}
-
-
 def detect_upcoming_holidays(
     today: Optional[datetime] = None, window_days: int = 14
 ) -> list[dict]:
-    """Deteksi hari libur/raya yang akan datang dalam window_days hari ke depan."""
+    """
+    Deteksi hari libur/raya nasional Indonesia secara real-time dan akurat
+    menggunakan library `holidays`.
+    """
+    import holidays
+    
     if today is None:
         today = datetime.now()
+
+    # Inisialisasi kalender libur Indonesia
+    # Menggunakan tahun ini dan tahun depan agar aman jika overlap akhir tahun
+    next_week = today + timedelta(days=window_days)
+    id_holidays = holidays.ID(years=[today.year, next_week.year])
 
     upcoming = []
     for d in range(window_days):
         check_date = today + timedelta(days=d)
-        key = (check_date.month, check_date.day)
-        if key in MAJOR_HOLIDAYS_2026:
+        
+        # Cek apakah tanggal tersebut adalah hari libur (mendukung cuti bersama & hari raya dinamis)
+        if check_date.date() in id_holidays:
+            holiday_name = id_holidays.get(check_date.date())
             upcoming.append(
                 {
                     "date": check_date.strftime("%Y-%m-%d"),
-                    "name": MAJOR_HOLIDAYS_2026[key],
+                    "name": holiday_name,
                     "days_away": d,
                 }
             )
+            
     return upcoming
 
 
@@ -617,6 +606,12 @@ def generate_seasonal_insight(
         f"Berikan nasehat restock musiman singkat."
     )
 
+    # Cek ketersediaan API key sebelum memanggil LLM
+    from app.helpers.config import settings
+    if not settings.gemini_api_key and not settings.openai_api_key:
+        print("[STOCK-SEASONAL] LLM keys not configured, skipping seasonal overlay")
+        return None
+
     # Import call_llm dari llm_insights (reuse retry logic)
     try:
         from app.ai.llm_insights import call_llm
@@ -632,7 +627,7 @@ def generate_seasonal_insight(
         }
 
     except Exception as e:
-        # LLM opsional untuk stock — jika gagal, return None bukan throw
+        # LLM opsional untuk stock — jika gagal (misal koneksi atau timeout), return None bukan throw
         print(f"[STOCK-SEASONAL] LLM unavailable ({type(e).__name__}), skipping seasonal overlay")
         return None
 
