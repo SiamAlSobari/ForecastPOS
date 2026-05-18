@@ -10,7 +10,7 @@ Fitur:
 - Micro-summarization (hemat token): hanya kirim high-level stats ke LLM.
 - Retrospektif: merangkum penjualan, produk terlaris, dead stock, dll.
 - Persona: LLM berperan sebagai rekan bisnis warung yang ramah.
-- Retry & Fallback: Gemini (2x retry) → OpenAI (2x retry) → throw error.
+- Retry & Fallback: Gemini Primary (2x) → Gemini Lite (2x) → Groq (2x) → throw error.
 - Designed untuk dipanggil via Laravel Cronjob setiap 7 hari sekali.
 
 Alur Eksekusi (dari sisi Laravel):
@@ -218,8 +218,34 @@ def _call_gemini_primary(prompt: str, system_prompt: str) -> str:
     return _call_gemini_model(prompt, system_prompt, "gemini-2.0-flash")
 
 
-def _call_gemini_fallback(prompt: str, system_prompt: str) -> str:
+def _call_gemini_lite(prompt: str, system_prompt: str) -> str:
     return _call_gemini_model(prompt, system_prompt, "gemini-2.5-flash-lite")
+
+
+def _call_groq(prompt: str, system_prompt: str) -> str:
+    """
+    Memanggil Groq Cloud API (LPU inference, super cepat).
+    Model: llama-3.3-70b-versatile (model besar, cerdas, gratis).
+    """
+    from groq import Groq
+
+    client = Groq(api_key=settings.groq_api_key)
+
+    chat_completion = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.7,
+        max_completion_tokens=500,
+    )
+
+    text = chat_completion.choices[0].message.content
+    if text:
+        return text.strip()
+
+    raise ValueError("Groq returned empty response")
 
 
 def _call_with_retry(
@@ -255,51 +281,70 @@ def _call_with_retry(
 
 def call_llm(prompt: str, system_prompt: str = SYSTEM_PROMPT) -> tuple[str, str]:
     """
-    Memanggil LLM dengan retry dan fallback secara eksklusif menggunakan Gemini.
+    Memanggil LLM dengan retry dan fallback 3 tahap.
 
     Flow:
-    1. Validasi: API key Gemini harus ada
-    2. Try Gemini Primary (2.0-flash) dengan retry
-    3. Jika gagal → Try Gemini Lite (2.0-flash-lite) sebagai fallback
-    4. Jika semua gagal → throw LLMServiceError
+    1. Validasi: minimal satu API key harus ada (Gemini atau Groq)
+    2. Try Gemini Primary (gemini-2.0-flash) — 2x retry
+    3. Jika gagal → Try Gemini Lite (gemini-2.5-flash-lite) — 2x retry
+    4. Jika gagal → Try Groq (llama-3.3-70b-versatile) — 2x retry
+    5. Jika semua gagal → throw LLMServiceError
 
     Returns:
-        Tuple (response_text, source) dimana source = "gemini-primary" | "gemini-fallback"
+        Tuple (response_text, source) dimana source =
+        "gemini-primary" | "gemini-lite" | "groq"
     """
     has_gemini = bool(settings.gemini_api_key)
+    has_groq = bool(settings.groq_api_key)
 
-    if not has_gemini:
+    if not has_gemini and not has_groq:
         raise LLMConfigError(
             "Tidak ada API key LLM yang dikonfigurasi. "
-            "Set GEMINI_API_KEY di file .env. "
+            "Set GEMINI_API_KEY dan/atau GROQ_API_KEY di file .env. "
         )
 
-    print(f"[LLM] Available providers: Gemini ✓")
+    providers = []
+    if has_gemini:
+        providers.append("Gemini")
+    if has_groq:
+        providers.append("Groq")
+    print(f"[LLM] Available providers: {' | '.join(p + ' ✓' for p in providers)}")
 
     result = None
     source = None
 
-    # Try Gemini Primary
-    result = _call_with_retry(
-        _call_gemini_primary, prompt, system_prompt, "Gemini Primary"
-    )
-    if result:
-        source = "gemini-primary"
-
-    # Fallback to Gemini Lite
-    if not result:
-        print("[LLM] Falling back to Gemini Lite...")
+    # ── 1. Try Gemini Primary (gemini-2.0-flash) ─────────────────────────
+    if has_gemini:
         result = _call_with_retry(
-            _call_gemini_fallback, prompt, system_prompt, "Gemini Fallback"
+            _call_gemini_primary, prompt, system_prompt, "Gemini Primary"
         )
         if result:
-            source = "gemini-fallback"
+            source = "gemini-primary"
 
-    # Semua gagal
+    # ── 2. Fallback Gemini Lite (gemini-2.5-flash-lite) ──────────────────
+    if not result and has_gemini:
+        print("[LLM] Falling back to Gemini Lite (2.5-flash-lite)...")
+        result = _call_with_retry(
+            _call_gemini_lite, prompt, system_prompt, "Gemini Lite"
+        )
+        if result:
+            source = "gemini-lite"
+
+    # ── 3. Fallback Groq (llama-3.3-70b-versatile) ───────────────────────
+    if not result and has_groq:
+        print("[LLM] Falling back to Groq (llama-3.3-70b)...")
+        result = _call_with_retry(
+            _call_groq, prompt, system_prompt, "Groq Fallback"
+        )
+        if result:
+            source = "groq"
+
+    # ── All failed ────────────────────────────────────────────────────────
     if not result:
         raise LLMServiceError(
-            f"Semua model Gemini (Primary & Fallback) gagal setelah retry. "
-            f"Periksa limit kuota API, koneksi internet, atau status layanan."
+            f"Semua LLM provider (Gemini Primary + Gemini Lite + Groq) "
+            f"gagal setelah retry. Periksa limit kuota API, koneksi "
+            f"internet, atau status layanan."
         )
 
     return result, source
@@ -319,14 +364,14 @@ def generate_portfolio_insights(
 
     Flow:
     1. Rangkum data transaksi 7 hari terakhir → JSON ringan
-    2. Kirim ke LLM (Gemini/OpenAI) dengan persona "Asisten Warung"
+    2. Kirim ke LLM (Gemini/Groq) dengan persona "Asisten Warung"
     3. Return hasil analisis portofolio
 
     Returns:
         {
             "insight": "... analisis portofolio dari LLM ...",
             "summary": { ... data ringkas ... },
-            "source": "gemini" | "openai",
+            "source": "gemini-primary" | "gemini-lite" | "groq",
             "generated_at": "...",
             "valid_until": "...",
         }
