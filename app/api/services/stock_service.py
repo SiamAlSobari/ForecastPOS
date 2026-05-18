@@ -1,9 +1,18 @@
 """
 Service layer untuk Decision Support System Restock Barang.
 Menghubungkan AI engine dengan API controller.
+
+Fitur:
+- Analisis restock per produk (ML-based)
+- Ringkasan restock semua produk
+- Seasonal insight: LLM overlay untuk prediksi musiman/hari raya (opsional)
 """
 
-from app.ai.stock_ai import analyze_restock, normalize_transactions
+from app.ai.stock_ai import (
+    analyze_restock,
+    normalize_transactions,
+    generate_seasonal_insight,
+)
 
 
 def get_restock_analysis(
@@ -35,10 +44,25 @@ def get_restock_analysis(
 def get_all_products_summary(
     transactions: list[dict],
     forecast_days: int = 14,
-) -> list[dict]:
+    include_seasonal: bool = False,
+) -> dict:
     """
     Mengambil ringkasan restock untuk SEMUA produk yang ada di data.
     Mengurutkan berdasarkan risk_point: CRITICAL(3) -> MEDIUM(2) -> NORMAL(1).
+
+    Jika include_seasonal=True, akan menambahkan nasehat LLM tentang
+    prediksi musiman/hari raya (membutuhkan API key LLM).
+
+    Args:
+        transactions: List data transaksi.
+        forecast_days: Jumlah hari prediksi ke depan.
+        include_seasonal: Sertakan nasehat musiman dari LLM? (default False).
+
+    Returns:
+        {
+            "products": [...],
+            "seasonal_insight": {...} | null
+        }
     """
     # Kumpulkan semua unique product_id
     product_ids = set()
@@ -56,6 +80,7 @@ def get_all_products_summary(
             forecast_days=forecast_days,
         )
         if "error" not in analysis:
+            restock = analysis["restock_recommendation"]
             results.append({
                 "product_id": pid,
                 "product_name": analysis.get("product_name", f"Product #{pid}"),
@@ -67,10 +92,23 @@ def get_all_products_summary(
                 "urgency_description": analysis["urgency_description"],
                 "risk": analysis["risk"],
                 "risk_point": analysis["risk_point"],
-                "recommended_restock_qty": analysis["restock_recommendation"]["recommended_quantity"],
-                "avg_daily_sales": analysis["historical_stats"]["avg_daily_sales"],
+                "restock_recommendation": {
+                    "min": restock["min"],
+                    "max": restock["max"],
+                    "label": restock["label"],
+                },
+                "avg_daily_sales": analysis.get("avg_daily_sales", 0),
             })
 
     # Sort by risk_point descending (CRITICAL=3 first, then MEDIUM=2, then NORMAL=1)
     results.sort(key=lambda x: x["risk_point"], reverse=True)
-    return results
+
+    # Seasonal insight (opsional, hanya jika diminta)
+    seasonal = None
+    if include_seasonal:
+        seasonal = generate_seasonal_insight(results)
+
+    return {
+        "products": results,
+        "seasonal_insight": seasonal,
+    }

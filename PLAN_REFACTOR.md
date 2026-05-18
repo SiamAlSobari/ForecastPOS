@@ -51,43 +51,49 @@ Sebagai AI, saya juga menyarankan agar model `stock_ai.py` kita diajari kalender
 
 **Kesimpulan untuk Stock AI Saat Ini:**
 1. **Rekomendasi Range:** Ubah keluaran angka mutlak jadi *range* (Misal: 40 - 60 item).
-2. **Implementasikan LLM Insight:** Gunakan LLM untuk memberikan nasehat yang mendukung insting pedagang saat musim anomali (validasi emosional/bisnis).
+2. **Implementasikan LLM Seasonal Overlay:** Gunakan LLM langsung di endpoint `/api/predict/restock/summary` (via param `?include_seasonal=true`) untuk menimpa prediksi ML jika terdeteksi hari libur nasional dalam 14 hari ke depan.
 
 ---
 
-## 4. Integrasi LLM: "Konsultan Bisnis Warung" (Business Insights)
+## 4. Integrasi LLM: Portofolio Bisnis Mingguan (`llm_insights.py`)
+**INI BUKAN PREDIKSI.** Ini adalah murni laporan retrospektif (evaluasi 7 hari ke belakang).
+
 **Ide Implementasi & Prompt Engineering:**
 1. **Micro-Summarization di Backend (Hemat Token):**
-   - Python cukup mengekstrak *High-level Stats*. Contoh JSON yang dikirim ke LLM (sangat ringan):
+   - Python merangkum data penjualan 7 hari terakhir. Contoh JSON yang dikirim ke LLM (sangat ringan):
      ```json
      {
-       "tanggal_sekarang": "5 April (H-7 Lebaran)",
-       "tren_minggu_ini": "Naik 15%",
-       "bintang_warung": ["Indomie Goreng", "Kopi Hitam"],
-       "produk_mati": ["Sabun Mandi X"],
-       "prediksi_ml": "Normal"
+       "tanggal_laporan": "18 Mei 2026",
+       "total_omset_minggu_ini": 1500000,
+       "bintang_warung": [{"nama": "Indomie", "terjual": 50}],
+       "produk_kurang_laku": ["Sabun Mandi X"]
      }
      ```
 2. **Karakter LLM (Persona):**
    - Set *System Prompt* LLM menjadi karakter yang bersahabat dan membumi.
-   - *Prompt:* "Kamu adalah rekan bisnis untuk warung kelontong. Baca data ringkas ini dan berikan 3 nasehat singkat. Jika ada event hari raya, perintahkan pemilik untuk pakai insting musimannya."
+   - *Prompt:* "Kamu adalah rekan bisnis untuk warung kelontong. Evaluasi performa minggu lalu berdasarkan data ini. Jangan prediksi ke depan."
 3. **Eksekusi Teknis:**
-   - Buat endpoint baru `/api/insights/smart-assistant`.
-   - Eksekusi secara *asynchronous* atau cache agar tidak boros API token.
+   - Endpoint: `/api/insights/generate`
+   - Dipanggil oleh **Laravel Cronjob setiap 7 hari** agar tidak boros token API. Hasilnya disimpan di tabel `ai_insights`.
 
 ---
 
 ## 📋 Langkah Eksekusi Berurutan (To-Do List)
 
-1. **Clean Up API Responses:**
+1. ✅ **Clean Up API Responses:**
    - Buka `app/ai/busy_hour_ai.py` & `app/ai/stock_ai.py`.
    - Pindahkan data teknis seperti `accuracy_percent` ke `print()` console backend.
-2. **Refactor Busy Hour AI:**
+2. ✅ **Refactor Busy Hour AI:**
    - Modifikasi `pred_trx` dan `pred_rev` menjadi format batas bawah dan atas (range).
-3. **Refactor Stock AI:**
+3. ✅ **Refactor Stock AI (Range & Seasonal Overlay):**
    - Ubah `restock_recommendation` menjadi bentuk range.
-4. **Bangun Modul LLM (Solusi Jangka Pendek):**
-   - Buat `app/ai/llm_insights.py` untuk mengolah summary data (termasuk deteksi tanggal/musim) sebelum dikirim ke API LLM.
+   - Tambahkan deteksi hari libur nasional (`detect_upcoming_holidays`).
+   - Tambahkan LLM Seasonal Overlay untuk memvalidasi "insting musiman" jelang hari raya.
+4. ✅ **Bangun Modul LLM Portofolio (`llm_insights.py`):**
+   - Buat modul untuk merangkum performa retrospektif 7 hari terakhir (omset, produk terlaris, hari ramai).
+   - Retry logic: Gemini (2x retry) → OpenAI (2x retry) → throw error.
+   - Config via `app/helpers/config.py` (bukan `os.getenv` langsung).
+   - Error handling: `LLMConfigError` (no API key) & `LLMServiceError` (all failed).
 5. **(Opsional) Upgrade Model ML (Solusi Jangka Panjang):**
    - Tambahkan integrasi modul `holidays` Python ke dataset training di `stock_ai.py` untuk mengajari AI tentang libur nasional dan anomali musiman.
 
@@ -104,15 +110,67 @@ Perubahan drastis di Python (AI Engine) pasti menuntut penyesuaian di Laravel se
 Karena *request* ke LLM (OpenAI/Gemini) menggunakan API berbayar dan memakan waktu (latency beberapa detik), **JANGAN eksekusi LLM setiap kali user membuka aplikasi**.
 - **Solusi Database:** Buat tabel baru di Laravel, misal `ai_insights`.
   - `id` (PK)
-  - `date` (Tanggal insight dibuat, misal: 2026-05-17)
-  - `insight_type` (Enum: 'daily_summary', 'stock_warning')
-  - `content` (Teks nasehat dari LLM)
+  - `user_id` (FK ke users, untuk multi-tenant)
+  - `insight_type` (Enum: 'weekly_summary', 'stock_warning')
+  - `content` (TEXT — nasehat dari LLM)
+  - `summary_data` (JSON — data ringkas yang dikirim ke LLM)
+  - `source` (VARCHAR — 'gemini' atau 'openai')
+  - `valid_until` (DATETIME — insight berlaku sampai kapan, 7 hari dari created_at)
   - `created_at` / `updated_at`
-- **Alur Kerja (Cronjob/Task Scheduling):** 
-  Laravel menjalankan Cronjob setiap pagi (misal jam 06:00). Laravel meminta data prediksi ke Python -> Python merangkum data dan memanggil LLM -> Hasil dari LLM disimpan di tabel `ai_insights`.
-  Saat pemilik warung buka aplikasi, Laravel cukup query: `SELECT content FROM ai_insights WHERE date = TODAY`, sehingga aplikasinya memuat instan (0 detik) dan token LLM hanya terpakai 1x sehari!
+- **Alur Kerja (Cronjob/Task Scheduling — 7 Hari Sekali):** 
+  ```
+  // app/Console/Kernel.php
+  $schedule->call(function () {
+      // 1. Ambil data transaksi 30 hari terakhir dari DB
+      $transactions = Transaction::with('items.product.stocks')
+          ->where('trx_date', '>=', now()->subDays(30))
+          ->get()->toArray();
 
-### C. Pembuatan Route Baru
-- `GET /api/ai/insights` -> Mengambil nasehat LLM dari database Laravel untuk ditampilkan di Dashboard Mobile.
-- `GET /api/ai/busy-hours` -> (Disesuaikan) untuk mengirimkan format range ke frontend.
-- `GET /api/ai/stocks` -> (Disesuaikan) untuk mengirimkan format range dan status "Dead Stock" ke frontend.
+      // 2. Kirim ke Python API
+      $response = Http::timeout(120)
+          ->post('http://localhost:8080/api/insights/generate', [
+              'data' => $transactions,
+              'forecast_days' => 14,
+          ]);
+
+      // 3. Handle response
+      if ($response->successful()) {
+          $data = $response->json('data');
+          AiInsight::create([
+              'user_id'      => $userId,
+              'insight_type' => 'weekly_summary',
+              'content'      => $data['insight'],
+              'summary_data' => json_encode($data['summary']),
+              'source'       => $data['source'],
+              'valid_until'  => $data['valid_until'],
+          ]);
+      } else {
+          Log::error('AI Insight generation failed', [
+              'status' => $response->status(),
+              'body'   => $response->json(),
+          ]);
+      }
+  })->weekly()->mondays()->at('06:00');
+  ```
+  Saat pemilik warung buka aplikasi, Laravel cukup query:
+  ```sql
+  SELECT * FROM ai_insights
+  WHERE user_id = ? AND valid_until >= NOW()
+  ORDER BY created_at DESC LIMIT 1
+  ```
+  Hasilnya instan (0 detik) dan token LLM hanya terpakai 1x per minggu!
+
+### C. Pembuatan Route Baru (Laravel)
+- `GET /api/ai/insights` → Mengambil nasehat LLM dari tabel `ai_insights` (baca DB, bukan call Python).
+- `GET /api/ai/busy-hours` → (Disesuaikan) untuk mengirimkan format range ke frontend.
+- `GET /api/ai/stocks` → (Disesuaikan) untuk mengirimkan format range dan status "Dead Stock" ke frontend.
+
+### D. Error Handling dari Python API
+Python API mengembalikan status code yang jelas agar Laravel bisa handle:
+| Status | Error Code | Artinya |
+|--------|------------|---------|
+| 200 | - | Sukses, simpan ke DB |
+| 503 | `LLM_CONFIG_ERROR` | API key belum diset di .env Python |
+| 502 | `LLM_SERVICE_ERROR` | Semua LLM gagal setelah retry |
+| 400 | `DATA_NOT_FOUND` | Tidak ada data transaksi |
+| 500 | `INTERNAL_ERROR` | Error tidak terduga |

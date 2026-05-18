@@ -7,6 +7,9 @@ untuk memprediksi:
 - Prediksi produk apa saja yang akan terjual per jam
 - Revenue forecast per jam
 - Confidence score & model accuracy metrics
+
+Refactored: Output menggunakan format range (min-max) agar lebih
+manusiawi dan relevan untuk pemilik warung.
 """
 
 import warnings
@@ -29,11 +32,11 @@ warnings.filterwarnings("ignore")
 # ─── Constants ────────────────────────────────────────────────────────────────
 
 BUSY_LEVEL_MAP = {
-    "PEAK": {"level": "PEAK", "point": 4, "emoji": "[!!!]"},
-    "HIGH": {"level": "HIGH", "point": 3, "emoji": "[!!]"},
-    "MEDIUM": {"level": "MEDIUM", "point": 2, "emoji": "[!]"},
-    "LOW": {"level": "LOW", "point": 1, "emoji": "[~]"},
-    "CLOSED": {"level": "CLOSED", "point": 0, "emoji": "[-]"},
+    "PEAK": {"level": "PEAK", "label": "Sangat Sibuk 🔥", "point": 4},
+    "HIGH": {"level": "HIGH", "label": "Ramai 📈", "point": 3},
+    "MEDIUM": {"level": "MEDIUM", "label": "Biasa Sedang ☕", "point": 2},
+    "LOW": {"level": "LOW", "label": "Sepi Santai 🍃", "point": 1},
+    "CLOSED": {"level": "CLOSED", "label": "Tutup 💤", "point": 0},
 }
 
 OPERATING_HOURS = list(range(7, 21))  # 07:00 - 20:00
@@ -515,6 +518,20 @@ def analyze_busy_hours(
                 pred_trx = 0.0
                 pred_rev = 0.0
 
+            # ─── Range Format: batas bawah & batas atas ──────────────────
+            # Margin ~15-20% dari prediksi titik tengah agar range realistis
+            trx_margin = max(1, round(pred_trx * 0.18))
+            rev_margin = max(5000, round(pred_rev * 0.18))
+
+            trx_min = max(0, int(round(pred_trx - trx_margin)))
+            trx_max = max(0, int(round(pred_trx + trx_margin)))
+            rev_min = max(0, int(round(pred_rev - rev_margin)))
+            rev_max = max(0, int(round(pred_rev + rev_margin)))
+
+            # Jika prediksi 0, set semua ke 0
+            if pred_trx == 0:
+                trx_min = trx_max = rev_min = rev_max = 0
+
             bl = classify_busy_level(pred_trx, percentiles)
 
             # Product predictions for this hour
@@ -560,14 +577,41 @@ def analyze_busy_hours(
                                 )
 
             predicted_products.sort(key=lambda x: x["probability"], reverse=True)
+            top_products = predicted_products[:6]
+
+            # ─── "What to Prepare" (Aksi Persiapan) ──────────────────────
+            what_to_prepare = None
+            if bl["level"] in ("PEAK", "HIGH") and top_products:
+                top_names = [p["product_name"] for p in top_products[:3]]
+                top_probs = [p["probability"] for p in top_products[:3]]
+                prep_items = ", ".join(
+                    f"{name} ({int(prob * 100)}%)" for name, prob in zip(top_names, top_probs)
+                )
+                what_to_prepare = (
+                    f"{bl['label']}. Siapkan lebih banyak {prep_items}."
+                )
+            elif bl["level"] == "MEDIUM" and top_products:
+                top_names = [p["product_name"] for p in top_products[:2]]
+                what_to_prepare = (
+                    f"Jam biasa. Cukup siapkan {', '.join(top_names)} secukupnya."
+                )
 
             hour_entry = {
                 "hour": f"{h:02d}:00",
-                "predicted_transactions": round(pred_trx, 2),
-                "predicted_revenue": round(pred_rev, 0),
+                "estimated_transactions": {
+                    "min": trx_min,
+                    "max": trx_max,
+                    "label": f"{trx_min} - {trx_max} transaksi",
+                },
+                "estimated_revenue": {
+                    "min": rev_min,
+                    "max": rev_max,
+                    "label": f"Rp {rev_min:,} - Rp {rev_max:,}".replace(",", "."),
+                },
                 "busy_level": bl["level"],
-                "emoji": bl["emoji"],
-                "predicted_products": predicted_products[:6],
+                "busy_label": bl["label"],
+                "what_to_prepare": what_to_prepare,
+                "predicted_products": top_products,
             }
             hourly_preds.append(hour_entry)
             day_total_trx += pred_trx
@@ -580,16 +624,23 @@ def analyze_busy_hours(
                         "day_name": day_name,
                         "hour": f"{h:02d}:00",
                         "level": bl["level"],
-                        "predicted_trx": round(pred_trx, 2),
+                        "label": bl["label"],
+                        "estimated_transactions": f"{trx_min} - {trx_max}",
                     }
                 )
 
         # Find peak hour of the day
-        peak = max(hourly_preds, key=lambda x: x["predicted_transactions"])
+        peak = max(hourly_preds, key=lambda x: x["estimated_transactions"]["max"])
         # Day-level busy score
         busy_hours_count = sum(
             1 for x in hourly_preds if x["busy_level"] in ("PEAK", "HIGH")
         )
+
+        # Total daily range
+        day_trx_min = sum(h["estimated_transactions"]["min"] for h in hourly_preds)
+        day_trx_max = sum(h["estimated_transactions"]["max"] for h in hourly_preds)
+        day_rev_min = sum(h["estimated_revenue"]["min"] for h in hourly_preds)
+        day_rev_max = sum(h["estimated_revenue"]["max"] for h in hourly_preds)
 
         daily_forecasts.append(
             {
@@ -597,42 +648,44 @@ def analyze_busy_hours(
                 "day_name": day_name,
                 "day_of_week": dow,
                 "is_weekend": bool(is_wknd),
-                "total_predicted_transactions": round(day_total_trx, 1),
-                "total_predicted_revenue": round(day_total_rev, 0),
+                "estimated_transactions": {
+                    "min": day_trx_min,
+                    "max": day_trx_max,
+                    "label": f"{day_trx_min} - {day_trx_max} transaksi",
+                },
+                "estimated_revenue": {
+                    "min": day_rev_min,
+                    "max": day_rev_max,
+                    "label": f"Rp {day_rev_min:,} - Rp {day_rev_max:,}".replace(",", "."),
+                },
                 "peak_hour": peak["hour"],
-                "peak_hour_transactions": peak["predicted_transactions"],
+                "peak_hour_label": peak["busy_label"],
                 "busy_hours_count": busy_hours_count,
                 "hourly_breakdown": hourly_preds,
             }
         )
 
     # 7. Summary
-    all_peak_hours.sort(key=lambda x: x["predicted_trx"], reverse=True)
-    busiest_day = max(daily_forecasts, key=lambda x: x["total_predicted_transactions"])
-    quietest_day = min(daily_forecasts, key=lambda x: x["total_predicted_transactions"])
+    all_peak_hours.sort(key=lambda x: x["estimated_transactions"], reverse=True)
+    busiest_day = max(daily_forecasts, key=lambda x: x["estimated_transactions"]["max"])
+    quietest_day = min(daily_forecasts, key=lambda x: x["estimated_transactions"]["max"])
+
+    data_range_from = features_df["date"].min().strftime("%Y-%m-%d")
+    data_range_to = features_df["date"].max().strftime("%Y-%m-%d")
 
     print(
         f"\n[FORECAST] {forecast_days} hari | Accuracy: {trx_model.metrics['accuracy_percent']}%"
     )
+    print(f"[DATA RANGE] {data_range_from} to {data_range_to}")
     print(f"[BUSIEST] {busiest_day['date']} ({busiest_day['day_name']})")
     print(f"[DONE] Analysis complete!\n")
 
-    # 8. Clean result
+    # 8. Clean result — hanya data yang dibutuhkan frontend
     return {
         "analysis_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "forecast_days": forecast_days,
-        "data_range": {
-            "from": features_df["date"].min().strftime("%Y-%m-%d"),
-            "to": features_df["date"].max().strftime("%Y-%m-%d"),
-        },
         "busiest_day": f"{busiest_day['date']} ({busiest_day['day_name']})",
         "quietest_day": f"{quietest_day['date']} ({quietest_day['day_name']})",
-        "avg_daily_transactions": round(
-            np.mean([d["total_predicted_transactions"] for d in daily_forecasts]), 1
-        ),
-        "avg_daily_revenue": round(
-            np.mean([d["total_predicted_revenue"] for d in daily_forecasts]), 0
-        ),
         "total_peak_hours": len(all_peak_hours),
         "top_peak_hours": all_peak_hours[:5],
         "daily_forecasts": daily_forecasts,
