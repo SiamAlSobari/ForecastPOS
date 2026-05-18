@@ -188,9 +188,9 @@ def build_llm_prompt(summary: dict) -> str:
     )
 
 
-def _call_gemini_once(prompt: str, system_prompt: str) -> str:
+def _call_gemini_model(prompt: str, system_prompt: str, model_name: str) -> str:
     """
-    Single attempt memanggil Google Gemini API.
+    Single attempt memanggil Google Gemini API dengan model tertentu.
     Raises Exception jika gagal.
     """
     from google import genai
@@ -199,7 +199,7 @@ def _call_gemini_once(prompt: str, system_prompt: str) -> str:
     client = genai.Client(api_key=settings.gemini_api_key)
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model=model_name,
         contents=prompt,
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,
@@ -211,34 +211,15 @@ def _call_gemini_once(prompt: str, system_prompt: str) -> str:
     if response.text:
         return response.text.strip()
 
-    raise ValueError("Gemini returned empty response")
+    raise ValueError(f"Gemini ({model_name}) returned empty response")
 
 
-def _call_openai_once(prompt: str, system_prompt: str) -> str:
-    """
-    Single attempt memanggil OpenAI API.
-    Raises Exception jika gagal.
-    """
-    from openai import OpenAI
+def _call_gemini_primary(prompt: str, system_prompt: str) -> str:
+    return _call_gemini_model(prompt, system_prompt, "gemini-2.0-flash")
 
-    client = OpenAI(api_key=settings.openai_api_key)
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.7,
-        max_tokens=500,
-    )
-
-    if response.choices:
-        content = response.choices[0].message.content
-        if content:
-            return content.strip()
-
-    raise ValueError("OpenAI returned empty response")
+def _call_gemini_fallback(prompt: str, system_prompt: str) -> str:
+    return _call_gemini_model(prompt, system_prompt, "gemini-2.5-flash-lite")
 
 
 def _call_with_retry(
@@ -274,66 +255,51 @@ def _call_with_retry(
 
 def call_llm(prompt: str, system_prompt: str = SYSTEM_PROMPT) -> tuple[str, str]:
     """
-    Memanggil LLM dengan retry dan fallback.
+    Memanggil LLM dengan retry dan fallback secara eksklusif menggunakan Gemini.
 
     Flow:
-    1. Validasi: minimal 1 API key harus ada → jika tidak, throw LLMConfigError
-    2. Gemini (2x retry) → jika gagal → OpenAI (2x retry)
-    3. Jika SEMUA provider gagal → throw LLMServiceError
+    1. Validasi: API key Gemini harus ada
+    2. Try Gemini Primary (2.0-flash) dengan retry
+    3. Jika gagal → Try Gemini Lite (2.0-flash-lite) sebagai fallback
+    4. Jika semua gagal → throw LLMServiceError
 
     Returns:
-        Tuple (response_text, source) dimana source = "gemini" | "openai"
-
-    Raises:
-        LLMConfigError: Tidak ada API key yang dikonfigurasi.
-        LLMServiceError: Semua LLM provider gagal setelah retry.
+        Tuple (response_text, source) dimana source = "gemini-primary" | "gemini-fallback"
     """
     has_gemini = bool(settings.gemini_api_key)
-    has_openai = bool(settings.openai_api_key)
 
-    if not has_gemini and not has_openai:
+    if not has_gemini:
         raise LLMConfigError(
             "Tidak ada API key LLM yang dikonfigurasi. "
-            "Set GEMINI_API_KEY dan/atau OPENAI_API_KEY di file .env. "
-            "Minimal satu API key harus tersedia untuk fitur AI."
+            "Set GEMINI_API_KEY di file .env. "
         )
 
-    print(f"[LLM] Available providers: "
-          f"{'Gemini ✓' if has_gemini else 'Gemini ✗'} | "
-          f"{'OpenAI ✓' if has_openai else 'OpenAI ✗'}")
+    print(f"[LLM] Available providers: Gemini ✓")
 
-    # Try Gemini (primary)
     result = None
     source = None
 
-    if has_gemini:
-        result = _call_with_retry(
-            _call_gemini_once, prompt, system_prompt, "Gemini"
-        )
-        if result:
-            source = "gemini"
+    # Try Gemini Primary
+    result = _call_with_retry(
+        _call_gemini_primary, prompt, system_prompt, "Gemini Primary"
+    )
+    if result:
+        source = "gemini-primary"
 
-    # Fallback to OpenAI
-    if not result and has_openai:
-        print("[LLM] Falling back to OpenAI...")
+    # Fallback to Gemini Lite
+    if not result:
+        print("[LLM] Falling back to Gemini Lite...")
         result = _call_with_retry(
-            _call_openai_once, prompt, system_prompt, "OpenAI"
+            _call_gemini_fallback, prompt, system_prompt, "Gemini Fallback"
         )
         if result:
-            source = "openai"
+            source = "gemini-fallback"
 
     # Semua gagal
     if not result:
-        tried_providers = []
-        if has_gemini:
-            tried_providers.append(f"Gemini ({MAX_RETRIES}x)")
-        if has_openai:
-            tried_providers.append(f"OpenAI ({MAX_RETRIES}x)")
-
         raise LLMServiceError(
-            f"Semua LLM provider gagal setelah retry. "
-            f"Providers yang dicoba: {', '.join(tried_providers)}. "
-            f"Periksa API key, koneksi internet, atau status layanan provider."
+            f"Semua model Gemini (Primary & Fallback) gagal setelah retry. "
+            f"Periksa limit kuota API, koneksi internet, atau status layanan."
         )
 
     return result, source
