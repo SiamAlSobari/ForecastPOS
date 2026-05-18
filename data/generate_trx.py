@@ -20,7 +20,7 @@ STOCK_IDS = {
     6: "019dc8a5-481c-7222-bbbb-222222222222",
 }
 
-PROD_CREATED = "2026-04-10T08:00:00.000000Z"
+PROD_CREATED = "2026-05-02T08:00:00.000000Z"
 
 def mk_product(pid):
     p = PRODUCTS[pid]
@@ -33,7 +33,7 @@ def mk_product(pid):
         "stocks": [{"id": STOCK_IDS[pid], "product_id": pid,
                      "stock_on_hand": p["stock"],
                      "created_at": PROD_CREATED,
-                     "updated_at": "2026-04-26T07:24:03.000000Z",
+                     "updated_at": "2026-05-18T07:24:03.000000Z",
                      "deleted_at": None}]
     }
 
@@ -41,7 +41,7 @@ def ts(dt): return dt.strftime("%Y-%m-%dT%H:%M:%S.000000Z")
 def paid(dt): return dt.strftime("%Y-%m-%d %H:%M:%S")
 def ymd(dt): return dt.strftime("%Y-%m-%d")
 
-base = datetime(2026, 4, 10, 8, 0, 0)
+base = datetime(2026, 5, 2, 8, 0, 0)
 
 # (day, h, m, s, type, [(pid, qty)])
 # Types:
@@ -56,7 +56,7 @@ base = datetime(2026, 4, 10, 8, 0, 0)
 #   P5 Minyak: stock=60, sells ~2/day → NORMAL (habis ~30 hari)
 #   P6 Gula:  stock=45, sells ~3/day → NORMAL (habis ~15 hari)
 RAW = [
-    # Apr 10 - Restock awal besar
+    # May 2 - Restock awal besar
     (0, 8,0,0, "PURCHASE", [(1,20),(2,60),(3,40),(4,10),(5,30),(6,25)]),
     (0, 10,15,30, "SALE", [(1,2),(2,5),(3,3),(6,2)]),
     (0, 14,30,10, "SALE", [(2,4),(3,2),(5,1),(4,1)]),
@@ -132,7 +132,7 @@ RAW = [
     (15, 10,15,30, "SALE", [(2,5),(3,3),(6,2)]),
     (15, 14,25,12, "SALE", [(1,2),(5,2),(2,4),(4,1)]),
     (15, 18,5,45, "SALE", [(3,4),(6,3),(1,1)]),
-    # Apr 26 (today) - Busy day
+    # May 18 (today) - Busy day
     (16, 8,30,22, "SALE", [(2,6),(3,3),(5,2)]),
     (16, 11,15,40, "SALE", [(1,2),(4,1),(6,2),(2,3)]),
     (16, 14,50,8, "SALE", [(3,3),(2,5),(5,1)]),

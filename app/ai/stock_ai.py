@@ -1,8 +1,17 @@
 """Module AI Forecasting untuk Decision Support System Restock Barang.
 
-Menggunakan scikit-learn Linear Regression untuk memprediksi pola penjualan
+Menggunakan scikit-learn Ensemble Model untuk memprediksi pola penjualan
 harian, lalu mensimulasikan kapan stok akan habis dan memberikan rekomendasi
 restock beserta level urgensi (NORMAL / MEDIUM / CRITICAL) dan risk point.
+
+Refactored: Output restock menggunakan format range (min-max) agar lebih
+fleksibel dan realistis untuk pemilik warung.
+
+Fitur Seasonal/Holiday:
+- Deteksi otomatis hari raya nasional Indonesia (Lebaran, Natal, dll).
+- LLM overlay: saat mendekati hari raya, LLM memberikan nasehat restock
+  musiman yang meng-override prediksi ML normal. Ini memvalidasi "insting
+  musiman" pedagang yang biasanya restock besar-besaran menjelang hari raya.
 """
 
 from datetime import datetime, timedelta
@@ -369,11 +378,21 @@ def simulate_stock_depletion(
     # ─── Tentukan Level Urgensi + Risk ────────────────────────────────────
     urgency_info = determine_urgency(days_until_empty, estimated_empty_date)
 
-    # ─── Rekomendasi Jumlah Restock ───────────────────────────────────────
+    # ─── Rekomendasi Jumlah Restock (Range Format) ─────────────────────
     # Target: stok cukup untuk 7 hari berdasarkan rata-rata prediksi
     avg_predicted = np.mean([p["predicted_sales"] for p in future_predictions[:7]])
     optimal_stock_7_days = int(np.ceil(avg_predicted * 7))
     restock_qty = max(0, optimal_stock_7_days - current_stock)
+
+    # Range: margin 20% bawah/atas agar pemilik warung bisa fleksibel
+    restock_min = max(0, int(round(restock_qty * 0.8)))
+    restock_max = max(0, int(round(restock_qty * 1.2)))
+
+    # Label yang ramah manusia
+    if restock_qty == 0:
+        restock_label = "Stok masih cukup, belum perlu restock."
+    else:
+        restock_label = f"Restock {restock_min} - {restock_max} item untuk persediaan 7 hari."
 
     return {
         "current_stock": current_stock,
@@ -381,10 +400,10 @@ def simulate_stock_depletion(
         "estimated_empty_date": estimated_empty_date,
         **urgency_info,
         "restock_recommendation": {
-            "recommended_quantity": restock_qty,
+            "min": restock_min,
+            "max": restock_max,
+            "label": restock_label,
             "target_days_coverage": 7,
-            "avg_daily_predicted_sales": round(avg_predicted, 1),
-            "optimal_stock_for_7_days": optimal_stock_7_days,
         },
         "stock_timeline": timeline,
     }
@@ -464,25 +483,156 @@ def analyze_restock(
     result["product_name"] = product_info["product_name"]
     result["product_price"] = product_info["product_price"]
     result["analysis_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    result["data_range"] = {
-        "from": daily["date"].min().strftime("%Y-%m-%d"),
-        "to": daily["date"].max().strftime("%Y-%m-%d"),
-        "total_days": len(daily),
-    }
+    result["avg_daily_sales"] = round(avg_daily, 1)
+    
+    data_range_from = daily["date"].min().strftime("%Y-%m-%d")
+    data_range_to = daily["date"].max().strftime("%Y-%m-%d")
     total_adjusted = int(daily["adjusted"].sum()) if "adjusted" in daily.columns else 0
-    result["historical_stats"] = {
-        "avg_daily_sales": round(avg_daily, 1),
-        "total_sold": int(daily["sold"].sum()),
-        "total_purchased": int(daily["purchased"].sum()),
-        "total_adjusted": total_adjusted,
-        "max_daily_sales": int(daily["sold"].max()),
-        "min_daily_sales": int(daily["sold"].min()),
-    }
 
     print(f"\n[FORECAST] {forecast_days} hari | Accuracy: {accuracy_pct}%")
+    print(f"[DATA RANGE] {data_range_from} to {data_range_to} ({len(daily)} days)")
+    print(f"[HISTORICAL STATS] Avg Daily: {round(avg_daily, 1)} | Sold: {int(daily['sold'].sum())} | Purchased: {int(daily['purchased'].sum())} | Adjusted: {total_adjusted}")
     print(
         f"[URGENCY] {result['urgency_level']} ({result['days_until_empty']} days until empty)"
     )
     print(f"[DONE] Analysis complete!\n")
 
     return result
+
+
+# ─── Holiday Detection (Seasonal Awareness) ──────────────────────────────────
+
+# Kalender libur nasional Indonesia (yang paling berdampak ke penjualan warung)
+# Untuk production, bisa diganti dengan library `holidays` Python.
+MAJOR_HOLIDAYS_2026 = {
+    (1, 1): "Tahun Baru",
+    (1, 29): "Tahun Baru Imlek",
+    (3, 20): "Isra Mi'raj",
+    (3, 22): "Hari Raya Nyepi",
+    (3, 28): "Awal Ramadan (estimasi)",
+    (4, 18): "Wafat Isa Al-Masih",
+    (4, 27): "Idul Fitri (estimasi)",
+    (4, 28): "Idul Fitri (estimasi)",
+    (5, 1): "Hari Buruh",
+    (5, 12): "Hari Raya Waisak",
+    (5, 29): "Kenaikan Isa Al-Masih",
+    (6, 1): "Hari Lahir Pancasila",
+    (7, 4): "Idul Adha (estimasi)",
+    (7, 25): "Tahun Baru Hijriah (estimasi)",
+    (8, 17): "Hari Kemerdekaan",
+    (10, 3): "Maulid Nabi (estimasi)",
+    (12, 25): "Natal",
+    (12, 31): "Malam Tahun Baru",
+}
+
+
+def detect_upcoming_holidays(
+    today: Optional[datetime] = None, window_days: int = 14
+) -> list[dict]:
+    """Deteksi hari libur/raya yang akan datang dalam window_days hari ke depan."""
+    if today is None:
+        today = datetime.now()
+
+    upcoming = []
+    for d in range(window_days):
+        check_date = today + timedelta(days=d)
+        key = (check_date.month, check_date.day)
+        if key in MAJOR_HOLIDAYS_2026:
+            upcoming.append(
+                {
+                    "date": check_date.strftime("%Y-%m-%d"),
+                    "name": MAJOR_HOLIDAYS_2026[key],
+                    "days_away": d,
+                }
+            )
+    return upcoming
+
+
+# ─── LLM Seasonal Overlay (Nasehat Musiman untuk Restock) ────────────────────
+
+SEASONAL_SYSTEM_PROMPT = """Kamu adalah "Konsultan Stok Warung", ahli dalam manajemen stok untuk warung kelontong Indonesia.
+
+Konteks: Kamu menerima data prediksi restock dari AI + info hari raya terdekat. Pemilik warung punya "insting musiman" yang biasanya BENAR — saat Lebaran/Natal/hari raya, penjualan bisa 2-3x lipat dari normal.
+
+Tugasmu:
+1. Jika ada hari raya terdekat (14 hari ke depan), OVERRIDE prediksi ML normal. Bilang ke pemilik bahwa instingnya BENAR, dan restock harus lebih besar dari angka AI.
+2. Sebutkan produk apa saja yang biasanya laris saat event tersebut (berdasarkan pengetahuan umummu tentang konsumen Indonesia).
+3. Berikan multiplier restock: misal "2x lipat" atau "3x lipat" dari rekomendasi normal.
+4. Gunakan bahasa Indonesia santai dan bersahabat. Max 2-3 kalimat saja.
+5. Jika TIDAK ada hari raya terdekat, cukup bilang singkat bahwa prediksi AI sudah cukup akurat, pakai angka normalnya saja."""
+
+
+def generate_seasonal_insight(
+    stock_summary: list[dict],
+) -> Optional[dict]:
+    """
+    Generate nasehat restock musiman menggunakan LLM.
+
+    Dipanggil HANYA jika ada hari raya dalam 14 hari ke depan,
+    ATAU jika user request nasehat LLM tambahan untuk restock.
+
+    Ini adalah "jembatan" antara prediksi ML yang buta kalender
+    dan insting musiman pedagang yang biasanya benar.
+
+    Args:
+        stock_summary: List ringkasan stok semua produk.
+
+    Returns:
+        Dict berisi nasehat seasonal dari LLM, atau None jika LLM tidak tersedia.
+        {
+            "has_upcoming_holiday": bool,
+            "upcoming_holidays": [...],
+            "seasonal_advice": "... nasehat LLM ...",
+            "source": "gemini" | "openai",
+        }
+
+    Returns None jika:
+        - API key tidak ada (fitur LLM opsional untuk stock endpoint)
+        - LLM gagal setelah retry
+    """
+    import json
+
+    today = datetime.now()
+    upcoming = detect_upcoming_holidays(today, window_days=14)
+
+    # Rangkum data stok untuk LLM (hemat token)
+    produk_ringkas = []
+    for p in stock_summary[:10]:  # Max 10 produk
+        produk_ringkas.append({
+            "nama": p.get("product_name", "?"),
+            "stok": p.get("current_stock", 0),
+            "restock_saran": f"{p.get('restock_recommendation', {}).get('min', 0)} - {p.get('restock_recommendation', {}).get('max', 0)}",
+            "urgensi": p.get("urgency_level", "NORMAL"),
+        })
+
+    prompt_data = {
+        "tanggal_hari_ini": today.strftime("%d %B %Y (%A)"),
+        "event_terdekat": upcoming if upcoming else "Tidak ada hari raya dalam 14 hari ke depan",
+        "ringkasan_stok": produk_ringkas,
+    }
+
+    prompt = (
+        f"Data restock warung saat ini:\n\n"
+        f"```json\n{json.dumps(prompt_data, indent=2, ensure_ascii=False)}\n```\n\n"
+        f"Berikan nasehat restock musiman singkat."
+    )
+
+    # Import call_llm dari llm_insights (reuse retry logic)
+    try:
+        from app.ai.llm_insights import call_llm
+        advice, source = call_llm(prompt, SEASONAL_SYSTEM_PROMPT)
+
+        print(f"[STOCK-SEASONAL] LLM seasonal advice generated ({source})")
+
+        return {
+            "has_upcoming_holiday": len(upcoming) > 0,
+            "upcoming_holidays": upcoming,
+            "seasonal_advice": advice,
+            "source": source,
+        }
+
+    except Exception as e:
+        # LLM opsional untuk stock — jika gagal, return None bukan throw
+        print(f"[STOCK-SEASONAL] LLM unavailable ({type(e).__name__}), skipping seasonal overlay")
+        return None
+
