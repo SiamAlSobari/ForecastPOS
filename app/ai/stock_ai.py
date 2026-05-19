@@ -308,24 +308,24 @@ def determine_urgency(
     """
     if days_until_empty is None:
         urgency = "NORMAL"
-        description = "Stok aman untuk periode prediksi ke depan."
+        description = "Stok diperkirakan aman untuk periode prediksi ke depan."
     elif days_until_empty <= 2:
         urgency = "CRITICAL"
         description = (
-            f"⚠️ DARURAT! Stok akan HABIS dalam {days_until_empty} hari "
-            f"(tanggal {estimated_empty_date}). Segera lakukan restock!"
+            f"⚠️ DARURAT! Stok diperkirakan habis dalam {days_until_empty} hari "
+            f"(sekitar tanggal {estimated_empty_date}). Disarankan segera restock."
         )
     elif days_until_empty <= 5:
         urgency = "MEDIUM"
         description = (
-            f"⚡ PERHATIAN! Stok akan habis dalam {days_until_empty} hari "
-            f"(tanggal {estimated_empty_date}). Rencanakan restock segera."
+            f"⚡ PERHATIAN! Stok diestimasi akan habis dalam {days_until_empty} hari "
+            f"(sekitar tanggal {estimated_empty_date}). Pertimbangkan untuk restock."
         )
     else:
         urgency = "NORMAL"
         description = (
-            f"✅ Stok masih cukup untuk {days_until_empty} hari "
-            f"(sampai tanggal {estimated_empty_date})."
+            f"✅ Stok diperkirakan masih cukup untuk {days_until_empty} hari "
+            f"(sekitar tanggal {estimated_empty_date})."
         )
 
     risk_info = RISK_MAP[urgency]
@@ -390,9 +390,9 @@ def simulate_stock_depletion(
 
     # Label yang ramah manusia
     if restock_qty == 0:
-        restock_label = "Stok masih cukup, belum perlu restock."
+        restock_label = "Stok diperkirakan masih cukup, belum perlu restock saat ini."
     else:
-        restock_label = f"Restock {restock_min} - {restock_max} item untuk persediaan 7 hari."
+        restock_label = f"Saran restock: {restock_min} - {restock_max} item untuk persediaan 7 hari ke depan."
 
     return {
         "current_stock": current_stock,
