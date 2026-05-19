@@ -268,14 +268,14 @@ def _call_with_retry(
             return result
         except Exception as e:
             error_msg = f"{provider_name} attempt {attempt} failed: {type(e).__name__}: {e}"
-            print(f"[LLM] ❌ {error_msg}")
+            print(f"[LLM] [X] {error_msg}")
             errors.append(error_msg)
             if attempt < MAX_RETRIES:
                 print(f"[LLM] Retrying in {RETRY_DELAY_SEC}s...")
                 time.sleep(RETRY_DELAY_SEC)
 
     # Semua retry gagal
-    print(f"[LLM] ⚠️ {provider_name} FAILED after {MAX_RETRIES} attempts")
+    print(f"[LLM] [!] {provider_name} FAILED after {MAX_RETRIES} attempts")
     return None
 
 
@@ -308,7 +308,7 @@ def call_llm(prompt: str, system_prompt: str = SYSTEM_PROMPT) -> tuple[str, str]
         providers.append("Gemini")
     if has_groq:
         providers.append("Groq")
-    print(f"[LLM] Available providers: {' | '.join(p + ' ✓' for p in providers)}")
+    print(f"[LLM] Available providers: {' | '.join(p + ' [OK]' for p in providers)}")
 
     result = None
     source = None

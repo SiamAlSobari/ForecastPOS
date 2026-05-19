@@ -308,24 +308,24 @@ def determine_urgency(
     """
     if days_until_empty is None:
         urgency = "NORMAL"
-        description = "Stok aman untuk periode prediksi ke depan."
+        description = "Stok diperkirakan aman untuk periode prediksi ke depan."
     elif days_until_empty <= 2:
         urgency = "CRITICAL"
         description = (
-            f"⚠️ DARURAT! Stok akan HABIS dalam {days_until_empty} hari "
-            f"(tanggal {estimated_empty_date}). Segera lakukan restock!"
+            f"⚠️ DARURAT! Stok diperkirakan habis dalam {days_until_empty} hari "
+            f"(sekitar tanggal {estimated_empty_date}). Disarankan segera restock."
         )
     elif days_until_empty <= 5:
         urgency = "MEDIUM"
         description = (
-            f"⚡ PERHATIAN! Stok akan habis dalam {days_until_empty} hari "
-            f"(tanggal {estimated_empty_date}). Rencanakan restock segera."
+            f"⚡ PERHATIAN! Stok diestimasi akan habis dalam {days_until_empty} hari "
+            f"(sekitar tanggal {estimated_empty_date}). Pertimbangkan untuk restock."
         )
     else:
         urgency = "NORMAL"
         description = (
-            f"✅ Stok masih cukup untuk {days_until_empty} hari "
-            f"(sampai tanggal {estimated_empty_date})."
+            f"✅ Stok diperkirakan masih cukup untuk {days_until_empty} hari "
+            f"(sekitar tanggal {estimated_empty_date})."
         )
 
     risk_info = RISK_MAP[urgency]
@@ -390,9 +390,9 @@ def simulate_stock_depletion(
 
     # Label yang ramah manusia
     if restock_qty == 0:
-        restock_label = "Stok masih cukup, belum perlu restock."
+        restock_label = "Stok diperkirakan masih cukup, belum perlu restock saat ini."
     else:
-        restock_label = f"Restock {restock_min} - {restock_max} item untuk persediaan 7 hari."
+        restock_label = f"Saran restock: {restock_min} - {restock_max} item untuk persediaan 7 hari ke depan."
 
     return {
         "current_stock": current_stock,
@@ -506,12 +506,12 @@ def analyze_restock(
 # Hanya hari raya ini yang butuh restock musiman. Hari libur kecil seperti
 # Isra Mi'raj, Nyepi, dsb tidak signifikan pengaruhnya terhadap penjualan warung.
 HIGH_IMPACT_KEYWORDS = [
-    "idul fitri", "lebaran", "hari raya",  # Lebaran — lonjakan terbesar
+    "idul fitri", "lebaran", "hari raya", "eid al-fitr", # Lebaran — lonjakan terbesar
     "natal", "christmas",                   # Natal
     "tahun baru", "new year",               # Tahun Baru Masehi
     "imlek", "chinese new year",            # Imlek
-    "idul adha",                            # Idul Adha (kurban, banyak kumpul keluarga)
-    "waisak",                               # Waisak (signifikan di daerah tertentu)
+    "idul adha", "eid al-adha",             # Idul Adha (kurban, banyak kumpul keluarga)
+    "waisak", "vesak",                      # Waisak (signifikan di daerah tertentu)
     "galungan", "kuningan",                 # Hari raya Hindu Bali
 ]
 
@@ -555,6 +555,8 @@ def detect_upcoming_holidays(
         # Cek apakah tanggal tersebut adalah hari libur (mendukung cuti bersama & hari raya dinamis)
         if check_date.date() in id_holidays:
             holiday_name = id_holidays.get(check_date.date())
+
+            print(f"[DEBUG-HOLIDAYS] Check: {check_date.date()} -> {holiday_name} (High Impact? {_is_high_impact_holiday(holiday_name)})")
 
             # Filter: hanya high-impact jika diminta
             if high_impact_only and not _is_high_impact_holiday(holiday_name):
@@ -681,6 +683,8 @@ def generate_seasonal_insight(
         }
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         # LLM opsional untuk stock — jika gagal, return None bukan throw
         print(f"[STOCK-SEASONAL] LLM unavailable ({type(e).__name__}), skipping seasonal overlay")
         return None
@@ -809,6 +813,8 @@ def generate_seasonal_restock_per_product(
         print(f"[STOCK-SEASONAL] Failed to parse LLM response as JSON: {e}")
         return {}
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"[STOCK-SEASONAL] LLM unavailable ({type(e).__name__}), skipping per-product seasonal")
         return {}
 
