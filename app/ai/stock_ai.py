@@ -502,15 +502,44 @@ def analyze_restock(
 
 # ─── Holiday Detection (Seasonal Awareness) ──────────────────────────────────
 
+# Keyword hari raya besar yang benar-benar mempengaruhi pola belanja konsumen.
+# Hanya hari raya ini yang butuh restock musiman. Hari libur kecil seperti
+# Isra Mi'raj, Nyepi, dsb tidak signifikan pengaruhnya terhadap penjualan warung.
+HIGH_IMPACT_KEYWORDS = [
+    "idul fitri", "lebaran", "hari raya",  # Lebaran — lonjakan terbesar
+    "natal", "christmas",                   # Natal
+    "tahun baru", "new year",               # Tahun Baru Masehi
+    "imlek", "chinese new year",            # Imlek
+    "idul adha",                            # Idul Adha (kurban, banyak kumpul keluarga)
+    "waisak",                               # Waisak (signifikan di daerah tertentu)
+    "galungan", "kuningan",                 # Hari raya Hindu Bali
+]
+
+
+def _is_high_impact_holiday(holiday_name: str) -> bool:
+    """Cek apakah hari libur ini berdampak tinggi terhadap penjualan warung."""
+    name_lower = holiday_name.lower()
+    return any(kw in name_lower for kw in HIGH_IMPACT_KEYWORDS)
+
+
 def detect_upcoming_holidays(
-    today: Optional[datetime] = None, window_days: int = 14
+    today: Optional[datetime] = None,
+    window_days: int = 14,
+    high_impact_only: bool = False,
 ) -> list[dict]:
     """
     Deteksi hari libur/raya nasional Indonesia secara real-time dan akurat
     menggunakan library `holidays`.
+
+    Args:
+        today: Tanggal referensi (default: hari ini).
+        window_days: Jendela deteksi ke depan (hari).
+        high_impact_only: Jika True, hanya return hari raya besar yang
+            benar-benar berpengaruh terhadap pola belanja (Lebaran, Natal,
+            Tahun Baru, Imlek, Idul Adha). Hari libur kecil di-skip.
     """
     import holidays
-    
+
     if today is None:
         today = datetime.now()
 
@@ -522,18 +551,24 @@ def detect_upcoming_holidays(
     upcoming = []
     for d in range(window_days):
         check_date = today + timedelta(days=d)
-        
+
         # Cek apakah tanggal tersebut adalah hari libur (mendukung cuti bersama & hari raya dinamis)
         if check_date.date() in id_holidays:
             holiday_name = id_holidays.get(check_date.date())
+
+            # Filter: hanya high-impact jika diminta
+            if high_impact_only and not _is_high_impact_holiday(holiday_name):
+                continue
+
             upcoming.append(
                 {
                     "date": check_date.strftime("%Y-%m-%d"),
                     "name": holiday_name,
                     "days_away": d,
+                    "impact": "HIGH" if _is_high_impact_holiday(holiday_name) else "LOW",
                 }
             )
-            
+
     return upcoming
 
 
@@ -544,11 +579,29 @@ SEASONAL_SYSTEM_PROMPT = """Kamu adalah "Konsultan Stok Warung", ahli dalam mana
 Konteks: Kamu menerima data prediksi restock dari AI + info hari raya terdekat. Pemilik warung punya "insting musiman" yang biasanya BENAR — saat Lebaran/Natal/hari raya, penjualan bisa 2-3x lipat dari normal.
 
 Tugasmu:
-1. Jika ada hari raya terdekat (14 hari ke depan), OVERRIDE prediksi ML normal. Bilang ke pemilik bahwa instingnya BENAR, dan restock harus lebih besar dari angka AI.
+1. Jika ada hari raya BESAR terdekat (14 hari ke depan), OVERRIDE prediksi ML normal. Bilang ke pemilik bahwa instingnya BENAR, dan restock harus lebih besar dari angka AI.
 2. Sebutkan produk apa saja yang biasanya laris saat event tersebut (berdasarkan pengetahuan umummu tentang konsumen Indonesia).
 3. Berikan multiplier restock: misal "2x lipat" atau "3x lipat" dari rekomendasi normal.
 4. Gunakan bahasa Indonesia santai dan bersahabat. Max 2-3 kalimat saja.
-5. Jika TIDAK ada hari raya terdekat, cukup bilang singkat bahwa prediksi AI sudah cukup akurat, pakai angka normalnya saja."""
+5. Jika TIDAK ada hari raya BESAR terdekat, cukup bilang singkat bahwa prediksi AI sudah cukup akurat, pakai angka normalnya saja.
+6. PENTING: Hari libur kecil (Isra Mi'raj, Nyepi, hari libur keagamaan minor) TIDAK perlu restock ekstra. Hanya hari raya BESAR (Lebaran, Natal, Tahun Baru, Imlek, Idul Adha) yang butuh restock musiman."""
+
+
+SEASONAL_RESTOCK_SYSTEM_PROMPT = """Kamu adalah "Konsultan Stok Warung", ahli dalam manajemen stok warung kelontong Indonesia.
+
+Tugasmu: Menentukan JUMLAH RESTOCK MUSIMAN per produk berdasarkan hari raya yang mendekat.
+
+Aturan:
+1. Kamu menerima daftar produk warung beserta restock normal (dari ML). Kamu harus tentukan berapa restock SEASONAL (musiman) untuk masing-masing produk.
+2. Seasonal restock dalam format RANGE (min - max). Contoh: min=30, max=50.
+3. Pertimbangkan jenis hari raya:
+   - Lebaran/Idul Fitri: Sirup, kue kering, minyak goreng, beras, gula → naik 2-3x. Sabun/sampo biasa saja.
+   - Natal/Tahun Baru: Minuman, snack, dekorasi → naik 1.5-2x.
+   - Imlek: Jeruk mandarin, angpao, kue keranjang → naik 2x.
+   - Idul Adha: Bumbu masak, plastik, es batu → naik 1.5-2x.
+4. Produk yang TIDAK relevan dengan hari raya tersebut, JANGAN beri seasonal restock (set null).
+5. Format output HARUS valid JSON array. Setiap item: {"product_id": int, "seasonal_min": int|null, "seasonal_max": int|null, "reason": string}.
+6. Jangan tambahkan teks apapun di luar JSON array."""
 
 
 def generate_seasonal_insight(
@@ -557,32 +610,33 @@ def generate_seasonal_insight(
     """
     Generate nasehat restock musiman menggunakan LLM.
 
-    Dipanggil HANYA jika ada hari raya dalam 14 hari ke depan,
-    ATAU jika user request nasehat LLM tambahan untuk restock.
-
-    Ini adalah "jembatan" antara prediksi ML yang buta kalender
-    dan insting musiman pedagang yang biasanya benar.
+    HANYA dipanggil jika ada hari raya BESAR dalam 14 hari ke depan.
+    Hari libur kecil (Isra Mi'raj, Nyepi, dll) tidak trigger nasehat musiman
+    karena dampaknya terhadap penjualan warung tidak signifikan.
 
     Args:
         stock_summary: List ringkasan stok semua produk.
 
     Returns:
-        Dict berisi nasehat seasonal dari LLM, atau None jika LLM tidak tersedia.
-        {
-            "has_upcoming_holiday": bool,
-            "upcoming_holidays": [...],
-            "seasonal_advice": "... nasehat LLM ...",
-            "source": "gemini" | "openai",
-        }
-
-    Returns None jika:
-        - API key tidak ada (fitur LLM opsional untuk stock endpoint)
+        Dict berisi nasehat seasonal dari LLM, atau None jika:
+        - Tidak ada hari raya besar terdekat
+        - API key tidak ada
         - LLM gagal setelah retry
     """
     import json
 
     today = datetime.now()
-    upcoming = detect_upcoming_holidays(today, window_days=14)
+    # Hanya deteksi hari raya BESAR (high impact)
+    upcoming = detect_upcoming_holidays(today, window_days=14, high_impact_only=True)
+
+    if not upcoming:
+        print("[STOCK-SEASONAL] No HIGH IMPACT holidays in 14 days, skipping seasonal overlay")
+        return {
+            "has_upcoming_holiday": False,
+            "upcoming_holidays": [],
+            "seasonal_advice": "Tidak ada hari raya besar dalam 14 hari ke depan. Gunakan rekomendasi restock normal dari AI.",
+            "source": "system",
+        }
 
     # Rangkum data stok untuk LLM (hemat token)
     produk_ringkas = []
@@ -596,7 +650,7 @@ def generate_seasonal_insight(
 
     prompt_data = {
         "tanggal_hari_ini": today.strftime("%d %B %Y (%A)"),
-        "event_terdekat": upcoming if upcoming else "Tidak ada hari raya dalam 14 hari ke depan",
+        "event_terdekat": upcoming,
         "ringkasan_stok": produk_ringkas,
     }
 
@@ -608,7 +662,7 @@ def generate_seasonal_insight(
 
     # Cek ketersediaan API key sebelum memanggil LLM
     from app.helpers.config import settings
-    if not settings.gemini_api_key and not settings.openai_api_key:
+    if not settings.gemini_api_key and not settings.groq_api_key:
         print("[STOCK-SEASONAL] LLM keys not configured, skipping seasonal overlay")
         return None
 
@@ -620,14 +674,141 @@ def generate_seasonal_insight(
         print(f"[STOCK-SEASONAL] LLM seasonal advice generated ({source})")
 
         return {
-            "has_upcoming_holiday": len(upcoming) > 0,
+            "has_upcoming_holiday": True,
             "upcoming_holidays": upcoming,
             "seasonal_advice": advice,
             "source": source,
         }
 
     except Exception as e:
-        # LLM opsional untuk stock — jika gagal (misal koneksi atau timeout), return None bukan throw
+        # LLM opsional untuk stock — jika gagal, return None bukan throw
         print(f"[STOCK-SEASONAL] LLM unavailable ({type(e).__name__}), skipping seasonal overlay")
         return None
+
+
+# ─── LLM Seasonal Restock Per Produk ─────────────────────────────────────────
+
+
+def generate_seasonal_restock_per_product(
+    stock_summary: list[dict],
+) -> dict[int, dict]:
+    """
+    Generate rekomendasi restock MUSIMAN per produk menggunakan LLM.
+
+    Hanya dipanggil jika ada hari raya BESAR dalam 14 hari ke depan.
+    LLM menentukan produk mana yang perlu restock ekstra dan berapa range-nya,
+    berdasarkan konteks hari raya (misal Lebaran → sirup/gula naik, Natal → snack naik).
+
+    Produk yang TIDAK relevan dengan hari raya tersebut tidak diberi seasonal restock.
+
+    Args:
+        stock_summary: List ringkasan stok semua produk.
+
+    Returns:
+        Dict mapping product_id -> seasonal_restock info:
+        {
+            1: {"min": 30, "max": 50, "label": "Restock musiman ...", "holiday": "Idul Fitri", "reason": "..."},
+            3: {"min": 20, "max": 35, "label": "Restock musiman ...", "holiday": "Idul Fitri", "reason": "..."},
+        }
+        Produk yang tidak butuh seasonal restock TIDAK ada di dict ini.
+        Returns empty dict jika tidak ada hari raya besar atau LLM gagal.
+    """
+    import json
+
+    today = datetime.now()
+    upcoming = detect_upcoming_holidays(today, window_days=14, high_impact_only=True)
+
+    if not upcoming:
+        print("[STOCK-SEASONAL] No HIGH IMPACT holidays → no seasonal restock needed")
+        return {}
+
+    # Cek ketersediaan API key
+    from app.helpers.config import settings
+    if not settings.gemini_api_key and not settings.groq_api_key:
+        print("[STOCK-SEASONAL] LLM keys not configured, skipping per-product seasonal")
+        return {}
+
+    # Rangkum data produk untuk LLM
+    produk_data = []
+    for p in stock_summary[:15]:  # Max 15 produk
+        restock = p.get("restock_recommendation", {})
+        produk_data.append({
+            "product_id": p.get("product_id"),
+            "nama": p.get("product_name", "?"),
+            "stok_sekarang": p.get("current_stock", 0),
+            "restock_normal_min": restock.get("min", 0),
+            "restock_normal_max": restock.get("max", 0),
+            "avg_daily_sales": p.get("avg_daily_sales", 0),
+        })
+
+    # Nama hari raya terdekat untuk konteks
+    holiday_names = ", ".join([h["name"] for h in upcoming])
+
+    prompt_data = {
+        "tanggal_hari_ini": today.strftime("%d %B %Y (%A)"),
+        "hari_raya_terdekat": upcoming,
+        "daftar_produk": produk_data,
+    }
+
+    prompt = (
+        f"Hari raya besar terdekat: {holiday_names}\n\n"
+        f"Data produk warung:\n"
+        f"```json\n{json.dumps(prompt_data, indent=2, ensure_ascii=False)}\n```\n\n"
+        f"Tentukan restock MUSIMAN per produk. Produk yang TIDAK relevan dengan "
+        f"hari raya ini, set seasonal_min dan seasonal_max ke null.\n"
+        f"Output format: JSON array [{{'product_id': int, 'seasonal_min': int|null, "
+        f"'seasonal_max': int|null, 'reason': string}}]"
+    )
+
+    try:
+        from app.ai.llm_insights import call_llm
+        raw_response, source = call_llm(prompt, SEASONAL_RESTOCK_SYSTEM_PROMPT)
+
+        print(f"[STOCK-SEASONAL] Per-product seasonal restock generated ({source})")
+
+        # Parse JSON dari response LLM
+        # Bersihkan markdown code block jika ada
+        cleaned = raw_response.strip()
+        if cleaned.startswith("```"):
+            # Hapus ```json ... ```
+            lines = cleaned.split("\n")
+            lines = [l for l in lines if not l.strip().startswith("```")]
+            cleaned = "\n".join(lines)
+
+        seasonal_data = json.loads(cleaned)
+
+        # Build mapping product_id -> seasonal_restock
+        result = {}
+        for item in seasonal_data:
+            pid = item.get("product_id")
+            s_min = item.get("seasonal_min")
+            s_max = item.get("seasonal_max")
+            reason = item.get("reason", "")
+
+            # Skip jika null (produk tidak relevan dengan hari raya)
+            if pid is None or s_min is None or s_max is None:
+                continue
+
+            # Pastikan min <= max
+            s_min, s_max = int(s_min), int(s_max)
+            if s_min > s_max:
+                s_min, s_max = s_max, s_min
+
+            result[pid] = {
+                "min": s_min,
+                "max": s_max,
+                "label": f"Restock musiman {s_min} - {s_max} item untuk {holiday_names}.",
+                "holiday": holiday_names,
+                "reason": reason,
+            }
+
+        print(f"[STOCK-SEASONAL] {len(result)}/{len(stock_summary)} products need seasonal restock")
+        return result
+
+    except json.JSONDecodeError as e:
+        print(f"[STOCK-SEASONAL] Failed to parse LLM response as JSON: {e}")
+        return {}
+    except Exception as e:
+        print(f"[STOCK-SEASONAL] LLM unavailable ({type(e).__name__}), skipping per-product seasonal")
+        return {}
 

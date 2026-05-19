@@ -6,12 +6,15 @@ Fitur:
 - Analisis restock per produk (ML-based)
 - Ringkasan restock semua produk
 - Seasonal insight: LLM overlay untuk prediksi musiman/hari raya (opsional)
+- Seasonal restock per produk: LLM menentukan range restock musiman
+  per produk berdasarkan konteks hari raya (opsional, hanya saat hari raya besar)
 """
 
 from app.ai.stock_ai import (
     analyze_restock,
     normalize_transactions,
     generate_seasonal_insight,
+    generate_seasonal_restock_per_product,
 )
 
 
@@ -50,8 +53,11 @@ def get_all_products_summary(
     Mengambil ringkasan restock untuk SEMUA produk yang ada di data.
     Mengurutkan berdasarkan risk_point: CRITICAL(3) -> MEDIUM(2) -> NORMAL(1).
 
-    Jika include_seasonal=True, akan menambahkan nasehat LLM tentang
-    prediksi musiman/hari raya (membutuhkan API key LLM).
+    Jika include_seasonal=True, akan menambahkan:
+    1. seasonal_insight: Nasehat umum LLM tentang musiman/hari raya.
+    2. seasonal_restock: Range restock musiman per produk (optional field).
+       Hanya produk yang relevan dengan hari raya yang mendapat field ini.
+       Produk yang tidak relevan → seasonal_restock = null.
 
     Args:
         transactions: List data transaksi.
@@ -60,7 +66,14 @@ def get_all_products_summary(
 
     Returns:
         {
-            "products": [...],
+            "products": [
+                {
+                    ...,
+                    "restock_recommendation": {"min": .., "max": .., "label": ..},
+                    "seasonal_restock": {"min": .., "max": .., "label": .., "holiday": .., "reason": ..} | null,
+                },
+                ...
+            ],
             "seasonal_insight": {...} | null
         }
     """
@@ -97,16 +110,28 @@ def get_all_products_summary(
                     "max": restock["max"],
                     "label": restock["label"],
                 },
+                "seasonal_restock": None,  # Default: null (diisi jika ada hari raya besar)
                 "avg_daily_sales": analysis.get("avg_daily_sales", 0),
             })
 
     # Sort by risk_point descending (CRITICAL=3 first, then MEDIUM=2, then NORMAL=1)
     results.sort(key=lambda x: x["risk_point"], reverse=True)
 
-    # Seasonal insight (opsional, hanya jika diminta)
+    # Seasonal insight & per-product seasonal restock (opsional, hanya jika diminta)
     seasonal = None
     if include_seasonal:
         seasonal = generate_seasonal_insight(results)
+
+        # Generate per-product seasonal restock ranges via LLM
+        # Hanya jika ada hari raya BESAR terdekat
+        seasonal_restock_map = generate_seasonal_restock_per_product(results)
+
+        # Inject seasonal_restock ke masing-masing produk
+        if seasonal_restock_map:
+            for product in results:
+                pid = product["product_id"]
+                if pid in seasonal_restock_map:
+                    product["seasonal_restock"] = seasonal_restock_map[pid]
 
     return {
         "products": results,
