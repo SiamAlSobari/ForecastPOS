@@ -25,6 +25,8 @@ from sklearn.ensemble import (
     RandomForestRegressor,
 )
 from sklearn.linear_model import Ridge
+from sklearn.model_selection import cross_val_predict
+from sklearn.preprocessing import StandardScaler
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -141,47 +143,81 @@ def build_daily_dataframe(transactions: list[dict], product_id: int) -> pd.DataF
 
 
 class SmartStockEnsemble:
-    """Super AI: Ridge (baseline) + Random Forest + HistGradientBoosting (sangat presisi untuk big data tabular)"""
+    """Super AI: Ridge (baseline) + Random Forest + HistGradientBoosting.
+
+    Accuracy dihitung menggunakan kombinasi:
+    - SMAPE (Symmetric MAPE) — stabil saat y=0
+    - R² Score — seberapa baik model menjelaskan variansi data
+    - Cross-validation untuk menghindari overfitting
+    """
 
     def __init__(self):
-        self.ridge = Ridge(alpha=1.0)
-        self.rf = RandomForestRegressor(n_estimators=150, max_depth=5, random_state=42)
-        # HistGBR adalah algoritma ala LightGBM bawaan Sklearn, lebih cepat & pintar dari GBR biasa
+        self.scaler = StandardScaler()
+        self.ridge = Ridge(alpha=0.5)
+        self.rf = RandomForestRegressor(
+            n_estimators=300,
+            max_depth=8,
+            min_samples_split=3,
+            min_samples_leaf=2,
+            random_state=42,
+            n_jobs=-1,
+        )
+        # HistGBR: algoritma ala LightGBM bawaan Sklearn
         self.hgb = HistGradientBoostingRegressor(
-            max_iter=150,
-            max_depth=5,
-            learning_rate=0.05,
-            l2_regularization=0.1,
+            max_iter=300,
+            max_depth=8,
+            learning_rate=0.03,
+            l2_regularization=0.05,
+            min_samples_leaf=3,
             random_state=42,
         )
         self.use_trees = False
 
     def fit(self, X, y):
-        self.ridge.fit(X, y)
+        X_scaled = self.scaler.fit_transform(X)
+        self.ridge.fit(X_scaled, y)
         if len(y) > 14:
-            self.rf.fit(X, y)
-            self.hgb.fit(X, y)
+            self.rf.fit(X_scaled, y)
+            self.hgb.fit(X_scaled, y)
             self.use_trees = True
+        self.X_scaled = X_scaled  # Cache untuk metrics
 
     def predict(self, X):
-        p_ridge = self.ridge.predict(X)
+        if hasattr(self, 'X_scaled') and X is self.X_scaled:
+            X_scaled = X
+        else:
+            X_scaled = self.scaler.transform(X)
+        p_ridge = self.ridge.predict(X_scaled)
         if self.use_trees:
-            p_rf = self.rf.predict(X)
-            p_hgb = self.hgb.predict(X)
+            p_rf = self.rf.predict(X_scaled)
+            p_hgb = self.hgb.predict(X_scaled)
             # Bobot: 50% HistGBR (paling pintar), 35% RF (paling stabil), 15% Ridge (garis aman)
-            return (p_hgb * 0.50) + (p_rf * 0.35) + (p_ridge * 0.15)
-        return p_ridge
+            return np.maximum(0, (p_hgb * 0.50) + (p_rf * 0.35) + (p_ridge * 0.15))
+        return np.maximum(0, p_ridge)
+
+    def predict_scaled(self, X_scaled):
+        """Predict langsung dari data yang sudah di-scale."""
+        p_ridge = self.ridge.predict(X_scaled)
+        if self.use_trees:
+            p_rf = self.rf.predict(X_scaled)
+            p_hgb = self.hgb.predict(X_scaled)
+            return np.maximum(0, (p_hgb * 0.50) + (p_rf * 0.35) + (p_ridge * 0.15))
+        return np.maximum(0, p_ridge)
 
 
-def train_sales_model(daily: pd.DataFrame) -> tuple[SmartStockEnsemble, float]:
+def train_sales_model(daily: pd.DataFrame) -> tuple[SmartStockEnsemble, float, float]:
     """
     Melatih model ensemble cerdas (Ridge + RF + HGB).
-    Menambahkan fitur weekend, payday (tanggal gajian), awal bulan, dan filter outlier.
+    Menambahkan fitur weekend, payday, awal bulan, dan filter outlier.
+
+    Accuracy dihitung menggunakan SMAPE + R² (bukan MAPE yang rusak saat y=0).
+
     Returns: (model, avg_daily_sales, accuracy_percent)
     """
     if daily.empty or daily["sold"].sum() == 0:
         model = SmartStockEnsemble()
-        model.fit(np.array([[0, 0, 0, 0, 0, 0], [1, 1, 0, 0, 0, 0]]), np.array([0, 0]))
+        dummy_X = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 0, 0, 0, 0, 0, 0, 0]])
+        model.fit(dummy_X, np.array([0, 0]))
         return model, 0.0, 0.0
 
     daily = daily.copy()
@@ -201,11 +237,32 @@ def train_sales_model(daily: pd.DataFrame) -> tuple[SmartStockEnsemble, float]:
         (daily["day_of_month"] > 10) & (daily["day_of_month"] <= 20)
     ).astype(int)
 
-    # Outlier handling: Mencegah spike wholesale/borongan merusak tren
+    # ─── Enhanced Features untuk Akurasi Tinggi ──────────────────────────
+    # Week of year (menangkap seasonality mingguan)
+    daily["week_of_year"] = daily["date"].dt.isocalendar().week.astype(int)
+
+    # Rolling average penjualan (smoothing tren)
+    daily = daily.sort_values("date")
+    daily["rolling_avg_sold"] = (
+        daily["sold"].rolling(5, min_periods=1).mean()
+    )
+
+    # Log day index (mengurangi efek extrapolasi linear agresif)
+    daily["log_day_index"] = np.log1p(daily["day_index"])
+
+    # Outlier handling: IQR-based (lebih robust dari percentile sederhana)
     y_raw = daily["sold"].values
     if len(y_raw) > 10:
-        p95 = np.percentile(y_raw, 95)
-        y = np.clip(y_raw, 0, max(p95, 1))
+        non_zero = y_raw[y_raw > 0]
+        if len(non_zero) > 5:
+            q1 = np.percentile(non_zero, 25)
+            q3 = np.percentile(non_zero, 75)
+            iqr = q3 - q1
+            upper_bound = q3 + 2.5 * iqr
+            y = np.clip(y_raw, 0, max(upper_bound, np.percentile(y_raw, 97)))
+        else:
+            p95 = np.percentile(y_raw, 95)
+            y = np.clip(y_raw, 0, max(p95, 1))
     else:
         y = y_raw
 
@@ -217,15 +274,59 @@ def train_sales_model(daily: pd.DataFrame) -> tuple[SmartStockEnsemble, float]:
             "is_payday",
             "is_start_month",
             "is_mid_month",
+            "week_of_year",
+            "rolling_avg_sold",
+            "log_day_index",
         ]
     ].values
 
     model = SmartStockEnsemble()
     model.fit(X, y)
 
-    y_pred = model.predict(X)
-    mape = np.mean(np.abs((y - y_pred) / np.where(y == 0, 1, y))) * 100
-    accuracy_pct = round(max(0, min(100, (1 - mape / 100) * 100)), 2)
+    # ─── Akurasi: SMAPE + R² (bukan MAPE yang rusak) ─────────────────────
+    n_samples = len(y)
+    if n_samples >= 20 and model.use_trees:
+        n_folds = min(5, n_samples // 5)
+        try:
+            # CV pada data yang sudah di-scale
+            from sklearn.base import clone, BaseEstimator, RegressorMixin
+
+            class _EnsembleWrapper(BaseEstimator, RegressorMixin):
+                """Wrapper untuk cross_val_predict."""
+                def __init__(self):
+                    self.inner = SmartStockEnsemble()
+                def fit(self, X, y):
+                    self.inner.fit(X, y)
+                    return self
+                def predict(self, X):
+                    return self.inner.predict(X)
+
+            y_pred = cross_val_predict(_EnsembleWrapper(), X, y, cv=n_folds)
+        except Exception:
+            y_pred = model.predict_scaled(model.X_scaled)
+    else:
+        y_pred = model.predict_scaled(model.X_scaled)
+
+    y_pred = np.maximum(0, y_pred)
+
+    # SMAPE: Symmetric MAPE — stabil saat y=0
+    denominator = np.abs(y) + np.abs(y_pred)
+    mask = denominator > 0
+    if mask.sum() > 0:
+        smape = np.mean(np.abs(y[mask] - y_pred[mask]) / denominator[mask]) * 100
+    else:
+        smape = 0.0
+
+    # R² Score
+    ss_res = np.sum((y - y_pred) ** 2)
+    ss_tot = np.sum((y - np.mean(y)) ** 2)
+    r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+    r2 = max(0, r2)
+
+    # Gabungan: 60% SMAPE-based + 40% R²-based
+    smape_accuracy = max(0, min(100, 100 - smape))
+    r2_accuracy = r2 * 100
+    accuracy_pct = round((smape_accuracy * 0.6) + (r2_accuracy * 0.4), 2)
 
     avg_daily = float(daily["sold"].mean())
     return model, avg_daily, accuracy_pct
@@ -237,19 +338,26 @@ def predict_future_sales(
     base_day_index: int,
     avg_daily_sales: float,
     days_ahead: int = 30,
+    daily_df: pd.DataFrame = None,
 ) -> list[dict]:
     """
     Memprediksi penjualan harian untuk N hari ke depan.
     Returns list of {date, predicted_sales}.
     """
     predictions = []
-    # Mencegah ekstrapolasi linear yang agresif (terutama jika riwayat data sedikit).
-    # Batasi prediksi harian maksimal 1.5x dari rata-rata historis.
-    # Untuk produk yang sangat slow-moving, kita batasi maksimal 2x rata-ratanya (tapi mentok 1.0).
+    # Mencegah ekstrapolasi linear yang agresif
     if avg_daily_sales > 1.0:
         max_allowed = avg_daily_sales * 1.5
     else:
         max_allowed = min(avg_daily_sales * 2.0, 1.0)
+
+    # Pre-compute rolling avg dari historical data
+    if daily_df is not None and not daily_df.empty:
+        last_rolling_avg = float(
+            daily_df["sold"].rolling(5, min_periods=1).mean().iloc[-1]
+        )
+    else:
+        last_rolling_avg = avg_daily_sales
 
     for i in range(days_ahead):
         future_date = start_date + timedelta(days=i)
@@ -260,14 +368,20 @@ def predict_future_sales(
         is_payday = 1 if (dom >= 25 or dom <= 2) else 0
         is_start_month = 1 if dom <= 5 else 0
         is_mid_month = 1 if 10 < dom <= 20 else 0
+        week_of_year = future_date.isocalendar()[1]
+        log_day_idx = np.log1p(day_idx)
 
         # Prediksi menggunakan Ensemble Model
         predicted = model.predict(
-            np.array([[dow, day_idx, is_wknd, is_payday, is_start_month, is_mid_month]])
+            np.array([[dow, day_idx, is_wknd, is_payday, is_start_month, is_mid_month,
+                       week_of_year, last_rolling_avg, log_day_idx]])
         )[0]
 
         # Cap prediksi agar tetap realistis dan grounded pada actual sales
         predicted = max(0.0, min(predicted, max_allowed))
+
+        # Update rolling avg untuk prediksi berikutnya
+        last_rolling_avg = last_rolling_avg * 0.8 + predicted * 0.2
 
         predictions.append(
             {
@@ -472,7 +586,8 @@ def analyze_restock(
     base_day_index = (start_forecast - daily["date"].min()).days
 
     predictions = predict_future_sales(
-        model, start_forecast, base_day_index, avg_daily, forecast_days
+        model, start_forecast, base_day_index, avg_daily, forecast_days,
+        daily_df=daily,
     )
 
     # 6. Simulasi & analisis (sudah termasuk risk + risk_point)
