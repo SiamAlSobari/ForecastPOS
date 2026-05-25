@@ -2,7 +2,7 @@
 Controller untuk endpoint Decision Support System Restock Barang.
 
 Fitur:
-- Ringkasan restock semua produk (ML-based)
+- Ringkasan restock semua produk (ML-based, CONCURRENT processing)
 - Seasonal insight: LLM overlay untuk prediksi musiman/hari raya (opsional)
   Aktifkan dengan query param ?include_seasonal=true
 
@@ -12,6 +12,11 @@ Seasonal insight adalah fitur "jembatan" antara:
 
 LLM akan meng-override prediksi ML normal dengan nasehat:
 "Meski data bilang stok aman, tapi 3 hari lagi Lebaran! Gas restock 2x lipat!"
+
+Concurrency:
+- Semua endpoint sekarang async agar bisa handle banyak request sekaligus
+- Optimal untuk cron job yang mengirim banyak request bersamaan
+- ML training dijalankan di thread pool, tidak blocking event loop
 """
 
 import json
@@ -19,7 +24,9 @@ import os
 
 from fastapi import APIRouter, Query
 from app.api.models.predict_model import SummaryRequest
-from app.api.services.stock_service import get_all_products_summary
+from app.api.services.stock_service import (
+    get_all_products_summary_async,
+)
 
 stock_controller = APIRouter()
 
@@ -40,7 +47,7 @@ def _load_transactions_from_file() -> list[dict]:
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @stock_controller.post("/restock/summary")
-def restock_summary(
+async def restock_summary(
     body: SummaryRequest = SummaryRequest(),
     include_seasonal: bool = Query(
         default=False,
@@ -50,6 +57,9 @@ def restock_summary(
     """
     Ringkasan urgensi restock untuk semua produk.
     Jika data kosong, otomatis pakai dummy data dari trx.json.
+
+    CONCURRENT: Semua produk dianalisis secara paralel.
+    Optimal untuk cron job yang mengirim banyak request bersamaan.
 
     Query Params:
     - include_seasonal=true: Tambahkan nasehat LLM tentang hari raya/musim.
@@ -65,7 +75,7 @@ def restock_summary(
     else:
         transactions = _load_transactions_from_file()
 
-    results = get_all_products_summary(
+    results = await get_all_products_summary_async(
         transactions=transactions,
         forecast_days=body.forecast_days,
         include_seasonal=include_seasonal,

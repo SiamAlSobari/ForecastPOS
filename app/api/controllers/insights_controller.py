@@ -16,10 +16,16 @@ Error Handling:
     - Tidak ada API key → 503 + pesan jelas
     - LLM gagal setelah retry → 502 + pesan jelas
     - Data kosong / error ML → 400 + pesan jelas
+
+Concurrency:
+    - Endpoint sekarang async → tidak blocking event loop saat cron job
+      mengirim banyak request bersamaan
 """
 
 import json
 import os
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import APIRouter, HTTPException
 from app.api.models.predict_model import SummaryRequest
@@ -27,6 +33,8 @@ from app.api.services.insights_service import get_portfolio_insights
 from app.ai.llm_insights import LLMConfigError, LLMServiceError
 
 insights_controller = APIRouter()
+
+_executor = ThreadPoolExecutor(max_workers=None)
 
 # ─── Helper: Load data dari file ──────────────────────────────────────────────
 
@@ -44,9 +52,10 @@ def _load_transactions_from_file() -> list[dict]:
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @insights_controller.post("/generate")
-def generate_weekly_portfolio(body: SummaryRequest = SummaryRequest()):
+async def generate_weekly_portfolio(body: SummaryRequest = SummaryRequest()):
     """
     Generate Portofolio Bisnis Mingguan — dipanggil oleh Laravel Cronjob.
+    ASYNC: Tidak blocking event loop, optimal untuk concurrent requests.
 
     Merangkum performa bisnis 7 HARI KE BELAKANG (retrospektif):
     - Total omset dan transaksi minggu ini
@@ -75,8 +84,11 @@ def generate_weekly_portfolio(body: SummaryRequest = SummaryRequest()):
         else:
             transactions = _load_transactions_from_file()
 
-        results = get_portfolio_insights(
-            transactions=transactions,
+        loop = asyncio.get_event_loop()
+        results = await loop.run_in_executor(
+            _executor,
+            get_portfolio_insights,
+            transactions,
         )
 
         return {

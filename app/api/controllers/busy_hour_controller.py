@@ -8,7 +8,7 @@ import os
 
 from fastapi import APIRouter
 from app.api.models.predict_model import SummaryRequest
-from app.api.services.busy_hour_service import get_busy_hour_analysis
+from app.api.services.busy_hour_service import get_busy_hour_analysis_async
 
 busy_hour_controller = APIRouter()
 
@@ -28,9 +28,10 @@ def _load_transactions_from_file() -> list[dict]:
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @busy_hour_controller.post("/busy-hours")
-def predict_busy_hours(body: SummaryRequest = SummaryRequest()):
+async def predict_busy_hours(body: SummaryRequest = SummaryRequest()):
     """
     Prediksi jam sibuk untuk 14 hari ke depan.
+    ASYNC: Tidak blocking event loop, optimal untuk cron job.
 
     Input data format SAMA dengan /api/predict/restock/summary.
     Jika data kosong, otomatis pakai data dari trx.json.
@@ -45,7 +46,7 @@ def predict_busy_hours(body: SummaryRequest = SummaryRequest()):
     else:
         transactions = _load_transactions_from_file()
 
-    results = get_busy_hour_analysis(
+    results = await get_busy_hour_analysis_async(
         transactions=transactions,
         forecast_days=body.forecast_days,
     )
