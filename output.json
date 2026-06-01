@@ -1,0 +1,126 @@
+{
+  "message": "Ringkasan restock semua produk",
+  "total_products": 6,
+  "data": [
+    {
+      "product_id": 1,
+      "product_name": "Sabun cuci piring",
+      "product_price": "15000.00",
+      "current_stock": 2,
+      "days_until_empty": 1,
+      "estimated_empty_date": "2026-05-19",
+      "urgency_level": "CRITICAL",
+      "urgency_description": "⚠️ DARURAT! Stok akan HABIS dalam 1 hari (tanggal 2026-05-19). Segera lakukan restock!",
+      "risk": "CRITICAL",
+      "risk_point": 3,
+      "restock_recommendation": {
+        "min": 16,
+        "max": 24,
+        "label": "Restock 16 - 24 item untuk persediaan 7 hari."
+      },
+      "seasonal_restock": null,
+      "avg_daily_sales": 3.4
+    },
+    {
+      "product_id": 2,
+      "product_name": "Mi instant",
+      "product_price": "3000.00",
+      "current_stock": 8,
+      "days_until_empty": 1,
+      "estimated_empty_date": "2026-05-19",
+      "urgency_level": "CRITICAL",
+      "urgency_description": "⚠️ DARURAT! Stok akan HABIS dalam 1 hari (tanggal 2026-05-19). Segera lakukan restock!",
+      "risk": "CRITICAL",
+      "risk_point": 3,
+      "restock_recommendation": {
+        "min": 52,
+        "max": 78,
+        "label": "Restock 52 - 78 item untuk persediaan 7 hari."
+      },
+      "seasonal_restock": null,
+      "avg_daily_sales": 10.2
+    },
+    {
+      "product_id": 3,
+      "product_name": "Air mineral 600ml",
+      "product_price": "3500.00",
+      "current_stock": 20,
+      "days_until_empty": 3,
+      "estimated_empty_date": "2026-05-21",
+      "urgency_level": "MEDIUM",
+      "urgency_description": "⚡ PERHATIAN! Stok akan habis dalam 3 hari (tanggal 2026-05-21). Rencanakan restock segera.",
+      "risk": "MEDIUM",
+      "risk_point": 2,
+      "restock_recommendation": {
+        "min": 23,
+        "max": 35,
+        "label": "Restock 23 - 35 item untuk persediaan 7 hari."
+      },
+      "seasonal_restock": null,
+      "avg_daily_sales": 6.9
+    },
+    {
+      "product_id": 6,
+      "product_name": "Gula pasir 1kg",
+      "product_price": "14000.00",
+      "current_stock": 14,
+      "days_until_empty": 4,
+      "estimated_empty_date": "2026-05-22",
+      "urgency_level": "MEDIUM",
+      "urgency_description": "⚡ PERHATIAN! Stok akan habis dalam 4 hari (tanggal 2026-05-22). Rencanakan restock segera.",
+      "risk": "MEDIUM",
+      "risk_point": 2,
+      "restock_recommendation": {
+        "min": 12,
+        "max": 18,
+        "label": "Restock 12 - 18 item untuk persediaan 7 hari."
+      },
+      "seasonal_restock": null,
+      "avg_daily_sales": 4.2
+    },
+    {
+      "product_id": 4,
+      "product_name": "Beras 5 kg",
+      "product_price": "70000.00",
+      "current_stock": 15,
+      "days_until_empty": null,
+      "estimated_empty_date": null,
+      "urgency_level": "NORMAL",
+      "urgency_description": "Stok aman untuk periode prediksi ke depan.",
+      "risk": "NORMAL",
+      "risk_point": 1,
+      "restock_recommendation": {
+        "min": 0,
+        "max": 0,
+        "label": "Stok masih cukup, belum perlu restock."
+      },
+      "seasonal_restock": null,
+      "avg_daily_sales": 1.1
+    },
+    {
+      "product_id": 5,
+      "product_name": "Minyak goreng 1L",
+      "product_price": "18000.00",
+      "current_stock": 60,
+      "days_until_empty": null,
+      "estimated_empty_date": null,
+      "urgency_level": "NORMAL",
+      "urgency_description": "Stok aman untuk periode prediksi ke depan.",
+      "risk": "NORMAL",
+      "risk_point": 1,
+      "restock_recommendation": {
+        "min": 0,
+        "max": 0,
+        "label": "Stok masih cukup, belum perlu restock."
+      },
+      "seasonal_restock": null,
+      "avg_daily_sales": 2.8
+    }
+  ],
+  "seasonal_insight": {
+    "has_upcoming_holiday": false,
+    "upcoming_holidays": [],
+    "seasonal_advice": "Tidak ada hari raya besar dalam 14 hari ke depan. Gunakan rekomendasi restock normal dari AI.",
+    "source": "system"
+  }
+}

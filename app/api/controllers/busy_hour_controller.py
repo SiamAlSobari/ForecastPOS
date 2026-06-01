@@ -1,5 +1,6 @@
 """
-Controller untuk endpoint Decision Support System Restock Barang.
+Controller untuk endpoint Busy Hour Prediction System.
+Format data input SAMA PERSIS dengan endpoint predict/restock/summary.
 """
 
 import json
@@ -7,10 +8,9 @@ import os
 
 from fastapi import APIRouter
 from app.api.models.predict_model import SummaryRequest
-from app.api.services.predict_service import get_all_products_summary
+from app.api.services.busy_hour_service import get_busy_hour_analysis
 
-predict_controller = APIRouter()
-
+busy_hour_controller = APIRouter()
 
 # ─── Helper: Load data dari file ──────────────────────────────────────────────
 
@@ -27,23 +27,29 @@ def _load_transactions_from_file() -> list[dict]:
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
-@predict_controller.post("/restock/summary")
-def restock_summary(body: SummaryRequest = SummaryRequest()):
+@busy_hour_controller.post("/busy-hours")
+def predict_busy_hours(body: SummaryRequest = SummaryRequest()):
     """
-    Ringkasan urgensi restock untuk semua produk.
-    Jika data kosong, otomatis pakai dummy data dari trx.json.
+    Prediksi jam sibuk untuk 14 hari ke depan.
+
+    Input data format SAMA dengan /api/predict/restock/summary.
+    Jika data kosong, otomatis pakai data dari trx.json.
+
+    Returns:
+    - Prediksi jam sibuk per hari (hourly breakdown)
+    - Prediksi produk & revenue per jam
+    - Peak hour rankings & summary
     """
     if body.data:
         transactions = [trx.model_dump() for trx in body.data]
     else:
         transactions = _load_transactions_from_file()
 
-    results = get_all_products_summary(
+    results = get_busy_hour_analysis(
         transactions=transactions,
         forecast_days=body.forecast_days,
     )
     return {
-        "message": "Ringkasan restock semua produk",
-        "total_products": len(results),
+        "message": "Prediksi jam sibuk berhasil",
         "data": results,
     }

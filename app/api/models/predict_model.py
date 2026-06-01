@@ -52,12 +52,19 @@ class TransactionItem(BaseModel):
 
 
 class Transaction(BaseModel):
-    """Satu transaksi (SALE atau PURCHASE)."""
+    """Satu transaksi (SALE, PURCHASE, atau ADJUSTMENT).
+
+    Tipe transaksi:
+    - SALE:       Penjualan barang (mengurangi stok)
+    - PURCHASE:   Pembelian/restock barang (menambah stok)
+    - ADJUSTMENT: Koreksi stok manual / stock opname (menambah stok,
+                  terjadi ketika user melakukan update stock product)
+    """
     model_config = {"extra": "allow"}
 
     id: int
     user_id: int
-    trx_type: str  # "SALE" atau "PURCHASE"
+    trx_type: str  # "SALE", "PURCHASE", atau "ADJUSTMENT"
     trx_date: str
     payment_method: str
     paid_at: str | None = None
