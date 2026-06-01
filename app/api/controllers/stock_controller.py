@@ -14,9 +14,6 @@ LLM akan meng-override prediksi ML normal dengan nasehat:
 "Meski data bilang stok aman, tapi 3 hari lagi Lebaran! Gas restock 2x lipat!"
 """
 
-import json
-import os
-
 from fastapi import APIRouter, Query
 from app.api.models.predict_model import SummaryRequest
 from app.api.services.stock_service import get_all_products_summary
@@ -24,24 +21,11 @@ from app.api.services.stock_service import get_all_products_summary
 stock_controller = APIRouter()
 
 
-# ─── Helper: Load data dari file ──────────────────────────────────────────────
-
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data")
-TRX_PATH = os.path.join(DATA_DIR, "trx.json")
-
-
-def _load_transactions_from_file() -> list[dict]:
-    """Membaca data transaksi dari file trx.json."""
-    with open(TRX_PATH, "r", encoding="utf-8") as f:
-        raw = json.load(f)
-    return raw.get("data", raw) if isinstance(raw, dict) else raw
-
-
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @stock_controller.post("/restock/summary")
 def restock_summary(
-    body: SummaryRequest = SummaryRequest(),
+    body: SummaryRequest,
     include_seasonal: bool = Query(
         default=False,
         description="Sertakan nasehat restock musiman dari LLM? (membutuhkan API key LLM)"
@@ -49,7 +33,6 @@ def restock_summary(
 ):
     """
     Ringkasan urgensi restock untuk semua produk.
-    Jika data kosong, otomatis pakai dummy data dari trx.json.
 
     Query Params:
     - include_seasonal=true: Tambahkan nasehat LLM tentang hari raya/musim.
@@ -60,10 +43,7 @@ def restock_summary(
     - products: List produk dengan urgensi restock
     - seasonal_insight: Nasehat musiman dari LLM (jika include_seasonal=true)
     """
-    if body.data:
-        transactions = [trx.model_dump() for trx in body.data]
-    else:
-        transactions = _load_transactions_from_file()
+    transactions = [trx.model_dump() for trx in body.data]
 
     results = get_all_products_summary(
         transactions=transactions,

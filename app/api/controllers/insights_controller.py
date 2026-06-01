@@ -18,9 +18,6 @@ Error Handling:
     - Data kosong / error ML → 400 + pesan jelas
 """
 
-import json
-import os
-
 from fastapi import APIRouter, HTTPException
 from app.api.models.predict_model import SummaryRequest
 from app.api.services.insights_service import get_portfolio_insights
@@ -28,23 +25,11 @@ from app.ai.llm_insights import LLMConfigError, LLMServiceError
 
 insights_controller = APIRouter()
 
-# ─── Helper: Load data dari file ──────────────────────────────────────────────
-
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data")
-TRX_PATH = os.path.join(DATA_DIR, "trx.json")
-
-
-def _load_transactions_from_file() -> list[dict]:
-    """Membaca data transaksi dari file trx.json."""
-    with open(TRX_PATH, "r", encoding="utf-8") as f:
-        raw = json.load(f)
-    return raw.get("data", raw) if isinstance(raw, dict) else raw
-
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @insights_controller.post("/generate")
-def generate_weekly_portfolio(body: SummaryRequest = SummaryRequest()):
+def generate_weekly_portfolio(body: SummaryRequest):
     """
     Generate Portofolio Bisnis Mingguan — dipanggil oleh Laravel Cronjob.
 
@@ -70,10 +55,7 @@ def generate_weekly_portfolio(body: SummaryRequest = SummaryRequest()):
     - valid_until: Insight berlaku sampai kapan (7 hari dari generated_at).
     """
     try:
-        if body.data:
-            transactions = [trx.model_dump() for trx in body.data]
-        else:
-            transactions = _load_transactions_from_file()
+        transactions = [trx.model_dump() for trx in body.data]
 
         results = get_portfolio_insights(
             transactions=transactions,
@@ -103,16 +85,6 @@ def generate_weekly_portfolio(body: SummaryRequest = SummaryRequest()):
                 "error": "LLM_SERVICE_ERROR",
                 "message": str(e),
                 "hint": "Periksa API key, koneksi internet, atau status layanan LLM provider.",
-            },
-        )
-
-    except FileNotFoundError:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "DATA_NOT_FOUND",
-                "message": "File trx.json tidak ditemukan dan tidak ada data di request body.",
-                "hint": "Kirim data transaksi via request body atau pastikan file trx.json tersedia.",
             },
         )
 

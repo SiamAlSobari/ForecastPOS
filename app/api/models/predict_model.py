@@ -85,5 +85,5 @@ class RestockRequest(BaseModel):
 
 class SummaryRequest(BaseModel):
     """Body untuk ringkasan restock semua produk."""
-    data: list[Transaction] = []
+    data: list[Transaction]
     forecast_days: int = Field(default=14, ge=1, le=90)
