@@ -1,0 +1,26 @@
+# Ignore git metadata
+.git
+.gitignore
+
+# Ignore Python virtual environments and caches
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Ignore local environment files and logs
+.env
+*.log
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore Docker files in build context
+Dockerfile
+docker-compose.yml
+.dockerignore
