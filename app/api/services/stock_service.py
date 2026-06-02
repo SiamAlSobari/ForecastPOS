@@ -10,6 +10,8 @@ Fitur:
   per produk berdasarkan konteks hari raya (opsional, hanya saat hari raya besar)
 """
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from app.ai.stock_ai import (
     analyze_restock,
     normalize_transactions,
@@ -24,18 +26,6 @@ def get_restock_analysis(
     current_stock: int | None = None,
     forecast_days: int = 14,
 ) -> dict:
-    """
-    Mengambil analisis restock untuk produk tertentu.
-
-    Args:
-        transactions: List data transaksi dari request body.
-        product_id: ID produk.
-        current_stock: Override stok saat ini (opsional).
-        forecast_days: Jumlah hari prediksi ke depan.
-
-    Returns:
-        Dictionary hasil analisis lengkap (termasuk risk & risk_point).
-    """
     return analyze_restock(
         transactions=transactions,
         product_id=product_id,
@@ -83,36 +73,44 @@ def get_all_products_summary(
         for item in trx.get("items", []):
             product_ids.add(item["product_id"])
 
-    # Analisis setiap produk
+    # Analisis setiap produk secara paralel
     results = []
 
-    for pid in sorted(product_ids):
-        analysis = analyze_restock(
-            transactions=transactions,
-            product_id=pid,
-            forecast_days=forecast_days,
-        )
-        if "error" not in analysis:
-            restock = analysis["restock_recommendation"]
-            results.append({
-                "product_id": pid,
-                "product_name": analysis.get("product_name", f"Product #{pid}"),
-                "product_price": analysis.get("product_price", "0.00"),
-                "current_stock": analysis["current_stock"],
-                "days_until_empty": analysis["days_until_empty"],
-                "estimated_empty_date": analysis["estimated_empty_date"],
-                "urgency_level": analysis["urgency_level"],
-                "urgency_description": analysis["urgency_description"],
-                "risk": analysis["risk"],
-                "risk_point": analysis["risk_point"],
-                "restock_recommendation": {
-                    "min": restock["min"],
-                    "max": restock["max"],
-                    "label": restock["label"],
-                },
-                "seasonal_restock": None,  # Default: null (diisi jika ada hari raya besar)
-                "avg_daily_sales": analysis.get("avg_daily_sales", 0),
-            })
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        future_map = {
+            executor.submit(
+                analyze_restock,
+                transactions=transactions,
+                product_id=pid,
+                forecast_days=forecast_days,
+            ): pid
+            for pid in sorted(product_ids)
+        }
+
+        for future in as_completed(future_map):
+            pid = future_map[future]
+            analysis = future.result()
+            if "error" not in analysis:
+                restock = analysis["restock_recommendation"]
+                results.append({
+                    "product_id": pid,
+                    "product_name": analysis.get("product_name", f"Product #{pid}"),
+                    "product_price": analysis.get("product_price", "0.00"),
+                    "current_stock": analysis["current_stock"],
+                    "days_until_empty": analysis["days_until_empty"],
+                    "estimated_empty_date": analysis["estimated_empty_date"],
+                    "urgency_level": analysis["urgency_level"],
+                    "urgency_description": analysis["urgency_description"],
+                    "risk": analysis["risk"],
+                    "risk_point": analysis["risk_point"],
+                    "restock_recommendation": {
+                        "min": restock["min"],
+                        "max": restock["max"],
+                        "label": restock["label"],
+                    },
+                    "seasonal_restock": None,
+                    "avg_daily_sales": analysis.get("avg_daily_sales", 0),
+                })
 
     # Sort by risk_point descending (CRITICAL=3 first, then MEDIUM=2, then NORMAL=1)
     results.sort(key=lambda x: x["risk_point"], reverse=True)
@@ -120,11 +118,12 @@ def get_all_products_summary(
     # Seasonal insight & per-product seasonal restock (opsional, hanya jika diminta)
     seasonal = None
     if include_seasonal:
-        seasonal = generate_seasonal_insight(results)
+        with ThreadPoolExecutor(max_workers=2) as llm_executor:
+            future_insight = llm_executor.submit(generate_seasonal_insight, results)
+            future_restock = llm_executor.submit(generate_seasonal_restock_per_product, results)
 
-        # Generate per-product seasonal restock ranges via LLM
-        # Hanya jika ada hari raya BESAR terdekat
-        seasonal_restock_map = generate_seasonal_restock_per_product(results)
+            seasonal = future_insight.result()
+            seasonal_restock_map = future_restock.result()
 
         # Inject seasonal_restock ke masing-masing produk
         if seasonal_restock_map:
