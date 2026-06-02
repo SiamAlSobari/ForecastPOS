@@ -5,6 +5,7 @@ click==8.3.3
 colorama==0.4.6
 fastapi==0.136.1
 h11==0.16.0
+holidays>=0.40
 httptools==0.7.1
 google-genai>=1.0.0
 openai>=1.0.0
