@@ -188,6 +188,9 @@ def build_llm_prompt(summary: dict) -> str:
     )
 
 
+LLM_TIMEOUT_SEC = 30
+
+
 def _call_gemini_model(prompt: str, system_prompt: str, model_name: str) -> str:
     """
     Single attempt memanggil Google Gemini API dengan model tertentu.
@@ -206,6 +209,7 @@ def _call_gemini_model(prompt: str, system_prompt: str, model_name: str) -> str:
             temperature=0.7,
             max_output_tokens=500,
         ),
+        timeout=LLM_TIMEOUT_SEC,
     )
 
     if response.text:
@@ -239,6 +243,7 @@ def _call_groq(prompt: str, system_prompt: str) -> str:
         ],
         temperature=0.7,
         max_completion_tokens=500,
+        timeout=LLM_TIMEOUT_SEC,
     )
 
     text = chat_completion.choices[0].message.content

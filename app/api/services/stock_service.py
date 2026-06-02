@@ -18,6 +18,7 @@ from app.ai.stock_ai import (
     generate_seasonal_insight,
     generate_seasonal_restock_per_product,
 )
+from app.api.cache import stock_cache
 
 
 def get_restock_analysis(
@@ -67,6 +68,11 @@ def get_all_products_summary(
             "seasonal_insight": {...} | null
         }
     """
+    # Cek cache dulu — kalau data sama, skip ML training
+    cached = stock_cache.get(transactions, forecast_days, include_seasonal)
+    if cached is not None:
+        return cached
+
     # Kumpulkan semua unique product_id
     product_ids = set()
     for trx in transactions:
@@ -132,7 +138,9 @@ def get_all_products_summary(
                 if pid in seasonal_restock_map:
                     product["seasonal_restock"] = seasonal_restock_map[pid]
 
-    return {
+    result = {
         "products": results,
         "seasonal_insight": seasonal,
     }
+    stock_cache.set(result, transactions, forecast_days, include_seasonal)
+    return result

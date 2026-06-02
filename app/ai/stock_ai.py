@@ -160,7 +160,7 @@ class SmartStockEnsemble:
             min_samples_split=3,
             min_samples_leaf=2,
             random_state=42,
-            n_jobs=-1,
+            n_jobs=1,
         )
         # HistGBR: algoritma ala LightGBM bawaan Sklearn
         self.hgb = HistGradientBoostingRegressor(

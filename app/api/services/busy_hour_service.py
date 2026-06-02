@@ -4,24 +4,20 @@ Menghubungkan AI engine busy_hour_ai dengan API controller.
 """
 
 from app.ai.busy_hour_ai import analyze_busy_hours, normalize_transactions
+from app.api.cache import busy_hour_cache
 
 
 def get_busy_hour_analysis(
     transactions: list[dict],
     forecast_days: int = 14,
 ) -> dict:
-    """
-    Mengambil analisis prediksi jam sibuk.
+    cached = busy_hour_cache.get(transactions, forecast_days)
+    if cached is not None:
+        return cached
 
-    Args:
-        transactions: List data transaksi (format sama dengan predict stock).
-        forecast_days: Jumlah hari prediksi ke depan (default 14).
-
-    Returns:
-        Dictionary berisi analisis lengkap: hourly forecasts, product predictions,
-        revenue forecasts, model accuracy, dan summary.
-    """
-    return analyze_busy_hours(
+    result = analyze_busy_hours(
         transactions=transactions,
         forecast_days=forecast_days,
     )
+    busy_hour_cache.set(result, transactions, forecast_days)
+    return result
