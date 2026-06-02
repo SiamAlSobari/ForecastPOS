@@ -17,5 +17,8 @@ app.include_router(insights_controller, prefix="/api/insights")
 
 # Jika ingin menjalankan langsung via 'python main.py'
 if __name__ == "__main__":
+    import os
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080, workers=4)
+
+    workers = int(os.getenv("UVICORN_WORKERS", os.cpu_count() or 4))
+    uvicorn.run("main:app", host="0.0.0.0", port=8080, workers=workers)
