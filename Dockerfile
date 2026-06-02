@@ -20,8 +20,9 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Salin semua source code ke dalam container
-COPY . /app/
+# Salin file dan folder yang diperlukan saja ke dalam container
+COPY app /app/app
+COPY main.py /app/
 
 # Port yang diekspos oleh container
 EXPOSE 8080

@@ -24,3 +24,9 @@ __pycache__/
 Dockerfile
 docker-compose.yml
 .dockerignore
+
+# Ignore data directory and markdown documentation files
+data/
+*.md
+bussy_response copy.json
+output.json
